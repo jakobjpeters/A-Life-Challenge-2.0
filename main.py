@@ -38,7 +38,6 @@ class Organism():
         """
         return self.x, self.y
 
-
     def __repr__(self) -> str:
         """
         Return the last four digits of an organism's unique identifier as a string.
