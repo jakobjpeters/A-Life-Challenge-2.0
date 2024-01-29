@@ -8,27 +8,49 @@ GRID_HEIGHT = 10
 GENES = Enum('Genes',[])
 
 class Organism():
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
-        self.energy_level = 0
-        self.genome = []
-        self.troph_type = 'p' #h, c, o
-        self.movement = 0
-        self.vision = 0
+    """
+    A simulated entity that exists within a simulated environment.
 
-    def update_location(self, new_x, new_y):
-        self.x = new_x
-        self.y = new_y
+    The `x` and `y` attributes indicate its position in the environment.
+    An organism dies when its `energy_level` is less than or equal to `0`.
+    """
+    energy_level = 0
+    genome = []
+    troph_type = 'p' #h, c, o
+    movement = 0
+    vision = 0
+
+    def __init__(self, x, y):
+        """
+        Instantiate an organism at the given `x` and `y` coordinates.
+        """
+        self.update_location(x, y)
+
+    def update_location(self, x, y):
+        """
+        Move an organism to the given `x` and `y` coordinates.
+        """
+        self.x, self.y = x, y
 
     def get_location(self):
+        """
+        Return a tuple of the organism's `x` and `y` coordinates.
+        """
         return self.x, self.y
 
 
     def __repr__(self) -> str:
+        """
+        Return the last four digits of an organism's unique identifier as a string.
+        This is used to display the organism in the REPL.
+        """
         return str(id(self))[-4:]
 
     def __str__(self):
+        """
+        Return a string containing details about the organism's attributes.
+        This is used to display the organism when calling `print`.
+        """
         attributes = ''
         attributes += f'Organism {self.__repr__()}:\n'
         attributes += f'  position:      x: {self.x}, y: {self.y}\n'
@@ -37,48 +59,80 @@ class Organism():
         return attributes
 
 class World():
+    """
+    A simulated environment containing simulated organisms.
+
+    The `organisms` attribute is a list of `Organism`s.
+    The `grid` is the environment, where `grid[y][x]` is a list of things in that cell.
+    The `frame` is a counter which increases by `1` every time `update` is called.
+    """
     organisms = [Organism(randint(0, GRID_WIDTH - 1), randint(0, GRID_HEIGHT - 1)) for _ in range(N_ORGANISMS)]
     grid = [[[] for __ in range(GRID_WIDTH)] for _ in range(GRID_HEIGHT)]
     frame = 0
 
     def __init__(self):
+        """
+        Instantiate a simulated environment and append each organism to its respective cell.
+        """
         for _organism in self.organisms:
             self.insert_to_cell(_organism)
 
     def get_cell(self, _organism):
+        """
+        Return the cell corresponding to an organism's `x` and `y` coordinates.
+        """
         return self.grid[_organism.y][_organism.x]
 
     def insert_to_cell(self, _organism):
+        """
+        Insert an organism in the cell at its `x` and `y` coordinates.
+        """
         self.get_cell(_organism).append(_organism)
 
     def remove_from_cell(self, _organism):
+        """
+        Remove an organism from the cell at its `x` and `y` coordinates.
+        """
         self.get_cell(_organism).remove(_organism)
 
     def kill(self, _organism):
+        """
+        Remove an organism from `self.organisms` and from its cell.
+        """
         self.organisms.remove(_organism)
         self.remove_from_cell(_organism)
-
-    def get_movement(self, _organism):
-        # dx = randint(0, _organism.movement)
-        # dy = _organism.movement - dx
-        # return min(GRID_WIDTH, dx), min(GRID_HEIGHT, dy)
-        pass
 
     def collide(self, x, y):
         pass
 
-    def move_organism(self, _organism):
-        dx, dy = self.get_movement(_organism)
+    def move_organism(self, _organism, dx, dy):
+        """
+        Move the given `_organism` to its current location plus `dx, dy`.
+        This new location must be within bounds of `self.grid`.
+        If its new cell is non-empty, handle collision.
+        """
         self.remove_from_cell(_organism)
         x, y = _organism.x + dx, _organism.y + dy
-        _organism.x, _organism.y = x, y
+        _organism.update_location(x, y)
         self.insert_to_cell(_organism)
 
         if len(self.grid[y][x]) > 1:
             self.collide(x, y)
 
+    def pathfind(self, _organism):
+        # dx = randint(0, _organism.movement)
+        # dy = _organism.movement - dx
+        # min(GRID_WIDTH, dx), min(GRID_HEIGHT, dy)
+        move_organism(_organism, 0, 0)
+
 
     def update(self):
+        """
+        This method processes and executes one from of the simulation.
+
+        The `self.frame` is incremented by `1` every time this method is called.
+        The behavior of each organism in `self.organisms` is determined and enacted sequentially.
+        """
         self.frame += 1
 
         for _organism in self.organisms:
@@ -86,12 +140,19 @@ class World():
             if _organism.energy_level <= 0:
                 self.kill(_organism)
             else:
-                self.move_organism(_organism)
+                self.pathfind(_organism)
 
     def save(self):
+        """
+        Write the state of the simulation to a file, so that it can be resumed later.
+        """
         pass
 
     def __str__(self):
+        """
+        Return a string that shows the simulated environment and the entities within it.
+        This is used to display the world when calling `print`.
+        """
         grid_str = ''
         for row in self.grid:
             for cell in row:
