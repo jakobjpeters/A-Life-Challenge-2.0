@@ -147,7 +147,7 @@ class World():
         """
         pass
 
-     def cell_content(self, x, y):
+    def cell_content(self, x, y):
         "Accepts tuple integers x and y where y is the yth list and x is the xth position in the yth list."
         return grid[y][x]
 
