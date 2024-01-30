@@ -66,10 +66,16 @@ class App:
                            height=600, bg='#2f2f2f')
         canvas.pack()
 
-        canvas.create_text(500, 50, text="stats can go here",
-                           font=('Times', 14), fill="#ff0000")
-        canvas.create_text(500, 30, text="this is blue text",
-                           font=('Times', 14), fill="blue")
+        canvas.create_text(550, 30, text="Live information will go here",
+                           font=('Times', 16), fill="blue")
+        canvas.create_text(550, 50, text="Live information will go here",
+                           font=('Times', 16), fill="red")
+        canvas.create_text(550, 70, text="Live information will go here",
+                           font=('Times', 16), fill="orange")
+        canvas.create_text(550, 90, text="Live information will go here",
+                           font=('Times', 16), fill="green")
+        canvas.create_text(550, 110, text="Live information will go here",
+                           font=('Times', 16), fill="white")
 
         # text display for the world state
         self.output_box = tk.Text(self.main_frame, wrap=tk.WORD, width=50,
