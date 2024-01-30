@@ -1,11 +1,9 @@
 import tkinter as tk
-from main import *
-
 
 class App:
-    def __init__(self, root):
+    def __init__(self, root, new_world):
         self.root = root
-        self.world = World()
+        self.world = new_world
         root.title("A-Life Challenge")
 
         # window size
@@ -97,7 +95,7 @@ class App:
         self.output_box.insert(tk.END, world_state)
 
 
-if __name__ == "__main__":
+"""if __name__ == "__main__":
     root = tk.Tk()
     app = App(root)
-    root.mainloop()
+    root.mainloop()"""
