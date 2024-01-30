@@ -31,7 +31,7 @@ class Organism():
         Move an organism to the given `x` and `y` coordinates.
         """
         self.x, self.y = x, y
-
+    
     def get_location(self):
         """
         Return a tuple of the organism's `x` and `y` coordinates.
@@ -147,6 +147,28 @@ class World():
         """
         pass
 
+     def cell_content(self, x, y):
+        "Accepts tuple integers x and y where y is the yth list and x is the xth position in the yth list."
+        return grid[y][x]
+
+    def see(self, _organism):
+        vision = _organism.vision
+        start_point_x, start_point_y = _organism.x - vision, _organism.y - vision
+        field_of_view = {}
+        for x in range(vision):
+            for y in range(vision):
+                if start_point_x + x >= 0 and vision + y >= 0 and vision + x < GRID_WIDTH and y < GRID_HEIGHT:
+                    field_of_view[(start_point_x + x, start_point_y + y)] = self.cell_content(start_point_x + x, start_point_y + y)
+        return field_of_view
+
+    def decision_model(self, choices):
+        rand_gen = random.uniform(0, 1)
+        cummulative_prob = 0
+        for choice in choices.keys:
+            if cummulative_prob < rand_gen and rand_gen <= cummulative_prob + choices[choice]:
+                return rand_gen
+            cummulative_prob += choices[choice]
+            
     def __str__(self):
         """
         Return a string that shows the simulated environment and the entities within it.
