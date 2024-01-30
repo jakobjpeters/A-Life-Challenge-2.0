@@ -3,9 +3,10 @@ from random import randint
 from enum import Enum
 from gui import *
 
-N_ORGANISMS = 10
+N_ORGANISMS = 3
 GRID_WIDTH = 10
 GRID_HEIGHT = 10
+STARTING_ENERGY_LEVEL = 5
 GENES = Enum('Genes',[])
 
 class Organism():
@@ -15,7 +16,9 @@ class Organism():
     The `x` and `y` attributes indicate its position in the environment.
     An organism dies when its `energy_level` is less than or equal to `0`.
     """
-    energy_level = 0
+    energy_level = STARTING_ENERGY_LEVEL
+    photosynthesis_rate =  1.1 # energy_levels / frame during day
+    metabolism_rate = 1 # make this a function of "size"?
     genome = []
     troph_type = 'p' #h, c, o
     movement = 0
@@ -32,6 +35,9 @@ class Organism():
         Move an organism to the given `x` and `y` coordinates.
         """
         self.x, self.y = x, y
+
+    def photosynthesize(self):
+        self.energy_level += self.photosynthesis_rate
     
     def get_location(self):
         """
@@ -57,6 +63,28 @@ class Organism():
         attributes += f'  energy_level:  {self.energy_level}\n'
         attributes += f'  genome:        {self.genome}\n'
         return attributes
+    
+
+
+class Sun():
+    """
+    Provide energy to photosynthesizing organisms during daytime.
+    """
+    is_day = True
+
+    def __init__(self, day_length=5):
+        self.day_length = day_length # currently implemented as days / frame
+        self.time_to_twighlight = self.day_length
+
+    def update(self):
+        """
+        Cycle between day or night if have reached twighlight.
+        """
+        self.time_to_twighlight -= 1
+        if self.time_to_twighlight == 0:
+            self.is_day = not self.is_day
+            self.time_to_twighlight = self.day_length
+
 
 class World():
     """
@@ -68,6 +96,7 @@ class World():
     """
     organisms = [Organism(randint(0, GRID_WIDTH - 1), randint(0, GRID_HEIGHT - 1)) for _ in range(N_ORGANISMS)]
     grid = [[[] for __ in range(GRID_WIDTH)] for _ in range(GRID_HEIGHT)]
+    sun = Sun()
     frame = 0
 
     def __init__(self):
@@ -123,7 +152,7 @@ class World():
         # dx = randint(0, _organism.movement)
         # dy = _organism.movement - dx
         # min(GRID_WIDTH, dx), min(GRID_HEIGHT, dy)
-        move_organism(_organism, 0, 0)
+        self.move_organism(_organism, 0, 0)
 
 
     def update(self):
@@ -134,13 +163,16 @@ class World():
         The behavior of each organism in `self.organisms` is determined and enacted sequentially.
         """
         self.frame += 1
-
         for _organism in self.organisms:
-            _organism.energy_level -= 1
+            if self.sun.is_day:
+                _organism.photosynthesize()
+            _organism.energy_level -= _organism.metabolism_rate
             if _organism.energy_level <= 0:
                 self.kill(_organism)
             else:
                 self.pathfind(_organism)
+
+        self.sun.update()
 
     def save(self):
         """
@@ -199,6 +231,9 @@ if __name__ == '__main__':
             
     while True:
         print(world)
+        for organism in world.organisms:
+            print(organism)
+        world.update()
         while True:
             ans = input('Next frame? [y/n] ')
             if ans in ('Y', 'y', ''):
