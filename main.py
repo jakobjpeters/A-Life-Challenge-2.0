@@ -1,6 +1,7 @@
 
 from random import randint
 from enum import Enum
+from gui import *
 
 N_ORGANISMS = 10
 GRID_WIDTH = 10
