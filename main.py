@@ -187,8 +187,15 @@ class World():
         return grid_str
 
 if __name__ == '__main__':
+    SHOW_GUI = False
     world = World()
     stop = False
+
+    if SHOW_GUI is True:
+        root = tk.Tk()
+        app = App(root, world)
+        root.mainloop()
+            
     while True:
         print(world)
         while True:
