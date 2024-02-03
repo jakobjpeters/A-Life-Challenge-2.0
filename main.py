@@ -8,6 +8,89 @@ GRID_HEIGHT = 10
 STARTING_ENERGY_LEVEL = 5
 GENES = Enum('Genes',[])
 
+class Genome:
+    # update traits here
+    # naming convention is TRAIT_options and then update self.phenotype and self.genotype with TRAIT
+    reproduction_options = ['sexual', 'asexual']
+    energy_source_options = ['herbivore', 'carnivore', 'omnivore', 'photosynthesis']
+    body_options = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    skin_options = ["fur", "shell", "camouflage", 'membrane', "quills"]
+    movement_options = ["bipedal", "quadripedal", "stationary"]
+    sleep_options = ['diurnal', 'nocturnal']
+    GENE_LENGTH = 50 # increasing GENE_LENGTH will make the odds of a mutation decrease
+
+    def __init__(self, reproduction=None, energy_source=None, body=None, skin=None, movement=None, sleep=None, genotype=None):
+        # will randomly generate a phenotype/genotype if one is not given
+        if genotype:
+            self.genotype = offspring_genotype
+            self.phenotype = self.calculate_phenotype_from_genotype()
+        else:
+            self.phenotype = {
+                'reproduction': reproduction if reproduction else self.choose_reproduction(),
+                'energy_source': energy_source if energy_source else self.choose_energy(),
+                'body': body if body else self.choose_body(),
+                'skin': skin if skin else self.choose_skin(),
+                'movement': movement if movement else self.choose_movement(),
+                'sleep': sleep if sleep else self.choose_sleep()
+            }
+
+            self.genotype = {
+                'reproduction': self.get_genotype(self.reproduction_options, self.phenotype['reproduction']),
+                'energy_source': self.get_genotype(self.energy_source_options, self.phenotype['energy_source']),
+                'body': self.get_genotype(self.body_options, self.phenotype['body']),
+                'skin': self.get_genotype(self.skin_options, self.phenotype['skin']),
+                'movement': self.get_genotype(self.movement_options, self.phenotype['movement']),
+                'sleep': self.get_genotype(self.sleep_options, self.phenotype['sleep'])
+            }
+
+    def calculate_phenotype_from_genotype(self):
+        phenotype = {}
+        for key in self.genotype:
+            phenotype[key] = self.get_phenotype_from_genotype(key)
+        return phenotype
+
+    def get_phenotype_from_genotype(self, key):
+        phen_list = getattr(self, f"{key}_options")
+        divisions = self.GENE_LENGTH // len(phen_list)
+        phen_index = int((self.genotype[key] - 1) // divisions)
+        return phen_list[phen_index]
+
+    # randomly selecting a phenotype
+    def choose_reproduction(self):
+        return random.choice(self.reproduction_options)
+
+    def choose_energy(self):
+        return random.choice(self.energy_source_options)
+
+    def choose_body(self):
+        return random.choice(self.body_options)
+
+    def choose_skin(self):
+        return random.choice(self.skin_options)
+
+    def choose_movement(self):
+        return random.choice(self.movement_options)
+
+    def choose_sleep(self):
+        return random.choice(self.sleep_options)
+
+    # randomly selecting a genotype
+    def random_gene(self):
+        return random.randint(0, self.GENE_LENGTH)
+
+    def get_genotype(self, phen_list, pheno):
+        divisions = self.GENE_LENGTH // len(phen_list)
+        phen_index = phen_list.index(pheno)
+        base = divisions * phen_index
+        max_ind = ((phen_index + 1) * divisions) - 1
+        return random.randint(base, max_ind)
+
+    def print_genotype(self):
+        print("Genotype: ", self.genotype)
+
+    def __str__(self):
+        return str(self.phenotype)
+
 class Organism():
     """
     A simulated entity that exists within a simulated environment.
