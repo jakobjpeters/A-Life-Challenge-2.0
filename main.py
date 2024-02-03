@@ -1,4 +1,3 @@
-
 from random import randint
 from enum import Enum
 from gui import *
@@ -37,6 +36,7 @@ class Organism():
         self.x, self.y = x, y
 
     def photosynthesize(self):
+        """Increase energy_level by an organisms photosynthesis_rate"""
         self.energy_level += self.photosynthesis_rate
     
     def get_location(self):
@@ -154,7 +154,6 @@ class World():
         # min(GRID_WIDTH, dx), min(GRID_HEIGHT, dy)
         self.move_organism(_organism, 0, 0)
 
-
     def update(self):
         """
         This method processes and executes one from of the simulation.
@@ -163,7 +162,9 @@ class World():
         The behavior of each organism in `self.organisms` is determined and enacted sequentially.
         """
         self.frame += 1
-        for _organism in self.organisms:
+       
+        organisms = self.organisms.copy()
+        for _organism in organisms:
             if self.sun.is_day:
                 _organism.photosynthesize()
             _organism.energy_level -= _organism.metabolism_rate
@@ -201,7 +202,7 @@ class World():
             if cummulative_prob < rand_gen and rand_gen <= cummulative_prob + choices[choice]:
                 return rand_gen
             cummulative_prob += choices[choice]
-            
+
     def __str__(self):
         """
         Return a string that shows the simulated environment and the entities within it.
