@@ -60,5 +60,71 @@ class TestWorld(unittest.TestCase):
         self.world.update()
         self.assertEqual(self.world.frame, frame + 1)
 
+class TestResolveFeeding(unittest.TestCase):
+    def setUp(self):
+        self.organism_1 = main.Organism(0, 0)
+        self.organism_2 = main.Organism(0, 0)
+
+        # Different skin options to make different 'species' by default
+        self.organism_1.genome.phenotype['skin'] = 'fur'
+        self.organism_2.genome.phenotype['skin'] = 'shell'
+    
+    def test_herbivore_eats_smaller_plant(self):
+        self.organism_1.genome.phenotype['energy_source'] = 'herbivore'
+        self.organism_1.energy_level = 2
+        self.organism_2.genome.phenotype['energy_source'] = 'photosynthesis'
+        self.organism_2.energy_level = 1
+        prey = main.resolve_feeding(self.organism_1, self.organism_2)
+        self.assertEqual(prey, self.organism_2)
+
+    def test_smaller_plant_eaten_by_herbivore(self):
+        self.organism_1.genome.phenotype['energy_source'] = 'photosynthesis'
+        self.organism_2.genome.phenotype['energy_source'] = 'herbivore'
+        self.organism_1.energy_level = 1
+        self.organism_2.energy_level = 2
+        prey = main.resolve_feeding(self.organism_1, self.organism_2)
+        self.assertEqual(prey, self.organism_1)
+
+    def test_herbivore_cannot_eat_larger_plant(self):
+        self.organism_1.genome.phenotype['energy_source'] = 'herbivore'
+        self.organism_2.genome.phenotype['energy_source'] = 'photosynthesis'
+        self.organism_1.energy_level = 1
+        self.organism_2.energy_level = 2
+        prey = main.resolve_feeding(self.organism_1, self.organism_2)
+        self.assertEqual(prey, None)
+
+    def test_omnivore_eats_smaller_carnivore(self):
+        self.organism_1.genome.phenotype['energy_source'] = 'omnivore'
+        self.organism_2.genome.phenotype['energy_source'] = 'carnivore'
+        self.organism_1.energy_level = 2
+        self.organism_2.energy_level = 1
+        prey = main.resolve_feeding(self.organism_1, self.organism_2)
+        self.assertEqual(prey, self.organism_2)
+
+    def test_equal_omnivore_carnivore_do_not_eat(self):
+        self.organism_1.genome.phenotype['energy_source'] = 'omnivore'
+        self.organism_2.genome.phenotype['energy_source'] = 'carnivore'
+        self.organism_1.energy_level = 2
+        self.organism_2.energy_level = 2
+        prey = main.resolve_feeding(self.organism_1, self.organism_2)
+        self.assertEqual(prey, None)
+
+    def test_larger_omnivore_eats_smaller_omnivore(self):
+        self.organism_1.genome.phenotype['energy_source'] = 'omnivore'
+        self.organism_2.genome.phenotype['energy_source'] = 'omnivore'
+        self.organism_1.energy_level = 2
+        self.organism_2.energy_level = 1
+        prey = main.resolve_feeding(self.organism_1, self.organism_2)
+        self.assertEqual(prey, self.organism_2)
+
+    def test_no_cannibalism(self):
+        self.organism_1.genome.phenotype['energy_source'] = 'omnivore'
+        self.organism_1.genome.phenotype = self.organism_2.genome.phenotype
+        self.organism_1.energy_level = 2
+        self.organism_2.energy_level = 1
+        prey = main.resolve_feeding(self.organism_1, self.organism_2)
+        self.assertEqual(prey, None)
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -1,12 +1,21 @@
+import random
+
 from random import randint
 from enum import Enum
 from gui import *
 
 N_ORGANISMS = 3
-GRID_WIDTH = 10
-GRID_HEIGHT = 10
+GRID_WIDTH = 5
+GRID_HEIGHT = 5
 STARTING_ENERGY_LEVEL = 5
 GENES = Enum('Genes',[])
+
+PREDATOR_PREY_TYPES = {
+    "herbivore": {"photosynthesis"},
+    "carnivore": {"omnivore", "carnivore", "herbivore"},
+    "omnivore": {"omnivore", "carnivore", "herbivore", "photosynthesis"},
+    "photosynthesis": set()
+}
 
 class Genome:
     # update traits here
@@ -98,10 +107,8 @@ class Organism():
     The `x` and `y` attributes indicate its position in the environment.
     An organism dies when its `energy_level` is less than or equal to `0`.
     """
-    energy_level = STARTING_ENERGY_LEVEL
     photosynthesis_rate =  1.1 # energy_levels / frame during day
     metabolism_rate = 1 # make this a function of "size"?
-    genome = []
     troph_type = 'p' #h, c, o
     movement = 0
     vision = 0
@@ -110,6 +117,8 @@ class Organism():
         """
         Instantiate an organism at the given `x` and `y` coordinates.
         """
+        self.genome = Genome()
+        self.energy_level = random.choice((4, 5, 6))
         self.update_location(x, y)
 
     def update_location(self, x, y):
@@ -119,8 +128,18 @@ class Organism():
         self.x, self.y = x, y
 
     def photosynthesize(self):
-        """Increase energy_level by an organisms photosynthesis_rate"""
-        self.energy_level += self.photosynthesis_rate
+        """
+        Increase energy_level by an organisms photosynthesis_rate if self
+        has the photosynthesis phenotype
+        """
+        if self.genome.phenotype['energy_source'] == 'photosynthesis':
+            self.energy_level += self.photosynthesis_rate
+
+    def eat(self, other):
+        """
+        Increase energy_level by fractional amount
+        """
+        self.energy_level += 0.5 * other.energy_level
     
     def get_location(self):
         """
@@ -133,7 +152,7 @@ class Organism():
         Return the last four digits of an organism's unique identifier as a string.
         This is used to display the organism in the REPL.
         """
-        return str(id(self))[-4:]
+        return str(id(self))[-5:]
 
     def __str__(self):
         """
@@ -215,7 +234,22 @@ class World():
         self.remove_from_cell(_organism)
 
     def collide(self, x, y):
-        pass
+        """
+        Determine whether eating, reproduction, or neither occurs when
+        organisms collide.
+        """
+        organisms = self.grid[y][x]
+        organism_1 = organisms[0]
+        organism_2 = organisms[1]
+
+        prey = resolve_feeding(organism_1, organism_2)
+        predator = organism_1 if organism_2 is prey else organism_2
+        if prey:
+            predator.eat(prey)
+            self.kill(prey)
+        else:
+            # TODO: reproduce if same species
+            ...
 
     def move_organism(self, _organism, dx, dy):
         """
@@ -224,7 +258,9 @@ class World():
         If its new cell is non-empty, handle collision.
         """
         self.remove_from_cell(_organism)
-        x, y = _organism.x + dx, _organism.y + dy
+        new_x = _organism.x + dx if _organism.x + dx < GRID_WIDTH else _organism.x
+        new_y = _organism.y + dy if _organism.y + dy < GRID_HEIGHT else _organism.y
+        x, y = new_x, new_y
         _organism.update_location(x, y)
         self.insert_to_cell(_organism)
 
@@ -248,13 +284,14 @@ class World():
        
         organisms = self.organisms.copy()
         for _organism in organisms:
+
+            # FIXME: currently just moving randomly
+            self.move_organism(_organism, random.choice((-1, 0, 1)), random.choice((-1, 0, 1)))
             if self.sun.is_day:
                 _organism.photosynthesize()
             _organism.energy_level -= _organism.metabolism_rate
             if _organism.energy_level <= 0:
                 self.kill(_organism)
-            else:
-                self.pathfind(_organism)
 
         self.sun.update()
 
@@ -295,13 +332,55 @@ class World():
         for row in self.grid:
             for cell in row:
                 if not cell:
-                    grid_str += '[    ]'
+                    grid_str += '[     ]'
                 elif len(cell) > 1:
-                    grid_str += '[Coll]'
+                    grid_str += '[Coll.]'
                 else:
                     grid_str += str(cell)
             grid_str += '\n'
         return grid_str
+
+
+def resolve_feeding(organism_1, organism_2):
+    """
+    Return Organism that will be eaten or None.
+
+    Organisms that are the same phenotype never eat each other. In other cases,
+    use `PREDATOR_PREY_TYPES` dict to determine wether one organism can
+    eat another organism based on its energy_source phenotype. In order to eat
+    another organism, one organism must not only be able to eat it based on its
+    energy_source phenotype, but it must also have more energy. If two organisms
+    could possibly eat each other, then the organism with more energy eats the
+    one with less energy.
+    """
+    phenotype_1 = organism_1.genome.phenotype
+    phenotype_2 = organism_2.genome.phenotype
+
+    # No cannibalism.
+    if phenotype_1 == phenotype_2:
+        return None
+    
+    organism_1_type = phenotype_1['energy_source']
+    organism_2_type = phenotype_2['energy_source']
+    organism_1_prey_types = PREDATOR_PREY_TYPES[organism_1_type]
+    organism_2_prey_types = PREDATOR_PREY_TYPES[organism_2_type]
+    organism_1_can_eat_organism_2 = organism_2_type in organism_1_prey_types
+    organism_2_can_eat_organism_1 = organism_1_type in organism_2_prey_types
+
+    prey = None
+    if organism_1_can_eat_organism_2 and not organism_2_can_eat_organism_1:
+        if organism_1.energy_level > organism_2.energy_level:
+            prey = organism_2
+    elif organism_2_can_eat_organism_1 and not organism_1_can_eat_organism_2:
+        if organism_2.energy_level > organism_1.energy_level:
+            prey = organism_1
+    elif organism_1_can_eat_organism_2 and organism_2_can_eat_organism_1:
+        if organism_1.energy_level > organism_2.energy_level:
+            prey = organism_2
+        elif organism_2.energy_level > organism_1.energy_level:
+            prey = organism_1
+    return prey
+
 
 if __name__ == '__main__':
     SHOW_GUI = False
