@@ -1,6 +1,6 @@
-import random
 
-from random import randint
+from random import randint, choice, uniform
+from math import ceil
 from enum import Enum
 from gui import *
 
@@ -8,91 +8,48 @@ N_ORGANISMS = 3
 GRID_WIDTH = 5
 GRID_HEIGHT = 5
 STARTING_ENERGY_LEVEL = 5
-GENES = Enum('Genes',[])
+GENE_LENGTH = 50 # increasing GENE_LENGTH will make the odds of a mutation decrease
+EAT_ENERGY_RATE = 0.5
 
-PREDATOR_PREY_TYPES = {
-    "herbivore": {"photosynthesis"},
-    "carnivore": {"omnivore", "carnivore", "herbivore"},
-    "omnivore": {"omnivore", "carnivore", "herbivore", "photosynthesis"},
-    "photosynthesis": set()
-}
+REPRODUCTION = Enum('Reproduction', ['sexual', 'asexual'])
+ENERGY_SOURCE = Enum('EnergySource', ['photosynthesis', 'herbivore', 'carnivore', 'omnivore'])
+SKIN = Enum('Skin', ['fur', 'shell', 'camouflage', 'membrane', 'quills'])
+MOVEMENT = Enum('Movement', ['bipedal', 'quadripedal', 'stationary'])
+SLEEP = Enum('Sleep', ['diurnal', 'nocturnal'])
+BODY = Enum('Body', ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'])
+TRAITS = [REPRODUCTION, ENERGY_SOURCE, SKIN, MOVEMENT, SLEEP, BODY]
+
+PREDATOR_PREY_TYPES = {ENERGY_SOURCE[predator]: [ENERGY_SOURCE[x] for x in prey] for predator, prey in (
+    ("herbivore", ["photosynthesis"]),
+    ("carnivore", ["omnivore", "carnivore", "herbivore"]),
+    ("omnivore", ["omnivore", "carnivore", "herbivore", "photosynthesis"]),
+    ("photosynthesis", [])
+)}
 
 class Genome:
-    # update traits here
-    # naming convention is TRAIT_options and then update self.phenotype and self.genotype with TRAIT
-    reproduction_options = ['sexual', 'asexual']
-    energy_source_options = ['herbivore', 'carnivore', 'omnivore', 'photosynthesis']
-    body_options = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    skin_options = ["fur", "shell", "camouflage", 'membrane', "quills"]
-    movement_options = ["bipedal", "quadripedal", "stationary"]
-    sleep_options = ['diurnal', 'nocturnal']
-    GENE_LENGTH = 50 # increasing GENE_LENGTH will make the odds of a mutation decrease
+    def __init__(self, phenotype={}, genotype={}):
+        self.genotype, self.phenotype = {}, {}
 
-    def __init__(self, reproduction=None, energy_source=None, body=None, skin=None, movement=None, sleep=None, genotype=None):
-        # will randomly generate a phenotype/genotype if one is not given
-        if genotype:
-            self.genotype = offspring_genotype
-            self.phenotype = self.calculate_phenotype_from_genotype()
-        else:
-            self.phenotype = {
-                'reproduction': reproduction if reproduction else self.choose_reproduction(),
-                'energy_source': energy_source if energy_source else self.choose_energy(),
-                'body': body if body else self.choose_body(),
-                'skin': skin if skin else self.choose_skin(),
-                'movement': movement if movement else self.choose_movement(),
-                'sleep': sleep if sleep else self.choose_sleep()
-            }
+        for trait in TRAITS:
+            if trait in genotype:
+                self.set_phenotype(trait)
+            elif trait in phenotype:
+                self.set_genotype(trait)
+            else:
+                self.genotype[trait] = randint(1, GENE_LENGTH)
+                self.set_phenotype(trait)
 
-            self.genotype = {
-                'reproduction': self.get_genotype(self.reproduction_options, self.phenotype['reproduction']),
-                'energy_source': self.get_genotype(self.energy_source_options, self.phenotype['energy_source']),
-                'body': self.get_genotype(self.body_options, self.phenotype['body']),
-                'skin': self.get_genotype(self.skin_options, self.phenotype['skin']),
-                'movement': self.get_genotype(self.movement_options, self.phenotype['movement']),
-                'sleep': self.get_genotype(self.sleep_options, self.phenotype['sleep'])
-            }
+    def set_phenotype(self, trait):
+        """
+        Assumes `trait in self.genotype`.
+        """
+        self.phenotype[trait] = trait(ceil(len(trait) * self.genotype[trait] / GENE_LENGTH))
 
-    def calculate_phenotype_from_genotype(self):
-        phenotype = {}
-        for key in self.genotype:
-            phenotype[key] = self.get_phenotype_from_genotype(key)
-        return phenotype
-
-    def get_phenotype_from_genotype(self, key):
-        phen_list = getattr(self, f"{key}_options")
-        divisions = self.GENE_LENGTH // len(phen_list)
-        phen_index = int((self.genotype[key] - 1) // divisions)
-        return phen_list[phen_index]
-
-    # randomly selecting a phenotype
-    def choose_reproduction(self):
-        return random.choice(self.reproduction_options)
-
-    def choose_energy(self):
-        return random.choice(self.energy_source_options)
-
-    def choose_body(self):
-        return random.choice(self.body_options)
-
-    def choose_skin(self):
-        return random.choice(self.skin_options)
-
-    def choose_movement(self):
-        return random.choice(self.movement_options)
-
-    def choose_sleep(self):
-        return random.choice(self.sleep_options)
-
-    # randomly selecting a genotype
-    def random_gene(self):
-        return random.randint(0, self.GENE_LENGTH)
-
-    def get_genotype(self, phen_list, pheno):
-        divisions = self.GENE_LENGTH // len(phen_list)
-        phen_index = phen_list.index(pheno)
-        base = divisions * phen_index
-        max_ind = ((phen_index + 1) * divisions) - 1
-        return random.randint(base, max_ind)
+    def set_genotype(self, trait):
+        """
+        Assumes `trait in self.phenotype`
+        """
+        self.genotype[trait] = ceil(GENE_LENGTH * self.phenotype[trait].value / len(trait))
 
     def print_genotype(self):
         print("Genotype: ", self.genotype)
@@ -118,7 +75,7 @@ class Organism():
         Instantiate an organism at the given `x` and `y` coordinates.
         """
         self.genome = Genome()
-        self.energy_level = random.choice((4, 5, 6))
+        self.energy_level = choice((4, 5, 6))
         self.update_location(x, y)
 
     def update_location(self, x, y):
@@ -132,15 +89,15 @@ class Organism():
         Increase energy_level by an organisms photosynthesis_rate if self
         has the photosynthesis phenotype
         """
-        if self.genome.phenotype['energy_source'] == 'photosynthesis':
+        if self.genome.phenotype[ENERGY_SOURCE] == ENERGY_SOURCE.photosynthesis:
             self.energy_level += self.photosynthesis_rate
 
     def eat(self, other):
         """
         Increase energy_level by fractional amount
         """
-        self.energy_level += 0.5 * other.energy_level
-    
+        self.energy_level += EAT_ENERGY_RATE * other.energy_level
+
     def get_location(self):
         """
         Return a tuple of the organism's `x` and `y` coordinates.
@@ -165,7 +122,7 @@ class Organism():
         attributes += f'  energy_level:  {self.energy_level}\n'
         attributes += f'  genome:        {self.genome}\n'
         return attributes
-    
+
 
 
 class Sun():
@@ -281,12 +238,12 @@ class World():
         The behavior of each organism in `self.organisms` is determined and enacted sequentially.
         """
         self.frame += 1
-       
+
         organisms = self.organisms.copy()
         for _organism in organisms:
 
             # FIXME: currently just moving randomly
-            self.move_organism(_organism, random.choice((-1, 0, 1)), random.choice((-1, 0, 1)))
+            self.move_organism(_organism, choice((-1, 0, 1)), choice((-1, 0, 1)))
             if self.sun.is_day:
                 _organism.photosynthesize()
             _organism.energy_level -= _organism.metabolism_rate
@@ -316,7 +273,7 @@ class World():
         return field_of_view
 
     def decision_model(self, choices):
-        rand_gen = random.uniform(0, 1)
+        rand_gen = uniform(0, 1)
         cummulative_prob = 0
         for choice in choices.keys:
             if cummulative_prob < rand_gen and rand_gen <= cummulative_prob + choices[choice]:
@@ -359,9 +316,9 @@ def resolve_feeding(organism_1, organism_2):
     # No cannibalism.
     if phenotype_1 == phenotype_2:
         return None
-    
-    organism_1_type = phenotype_1['energy_source']
-    organism_2_type = phenotype_2['energy_source']
+
+    organism_1_type = phenotype_1[ENERGY_SOURCE]
+    organism_2_type = phenotype_2[ENERGY_SOURCE]
     organism_1_prey_types = PREDATOR_PREY_TYPES[organism_1_type]
     organism_2_prey_types = PREDATOR_PREY_TYPES[organism_2_type]
     organism_1_can_eat_organism_2 = organism_2_type in organism_1_prey_types
@@ -391,7 +348,7 @@ if __name__ == '__main__':
         root = tk.Tk()
         app = App(root, world)
         root.mainloop()
-            
+
     while True:
         print(world)
         for organism in world.organisms:
