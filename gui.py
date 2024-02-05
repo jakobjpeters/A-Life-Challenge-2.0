@@ -7,8 +7,11 @@ HEIGHT = 600
 CELL_SIZE = 50
 FPS_REFRESH_RATE = 1 # second
 CELL_COLOR = '#2f2f2f'
+# BODY_COLORS = {body: color for body, color in zip(BODY, (
+#     'white smoke', 'cyan', 'blue', 'purple1', 'pink', 'red', 'orange', 'yellow', 'green', 'black'
+# ))}
 BODY_COLORS = {body: color for body, color in zip(BODY, (
-    'white smoke', 'cyan', 'blue', 'purple1', 'pink', 'red', 'orange', 'yellow', 'green', 'black'
+    '#f5f5f5', '#00FFFF', '#0000FF', '#9b30ff', '#ffc0cb', '#ff0000', '#FFA500', '#FFFF00', '#00FF00', '#000000'
 ))}
 
 class App:
@@ -96,6 +99,10 @@ class App:
 
     def update_button_command(self):
         self.world.update()
+        if self.world.sun.is_day:
+            self.canvas.configure(bg='white')
+        else:
+            self.canvas.configure(bg='black')
         self.render()
 
     def load_button_command(self):
@@ -112,9 +119,21 @@ class App:
             for y in range(GRID_HEIGHT):
                 cell = self.world.grid[y][x]
                 if cell:
-                    self.color_cell(x, y, BODY_COLORS[cell[0].genome.phenotype[BODY]])
+                    color = BODY_COLORS[cell[0].genome.phenotype[BODY]]
+                    if cell[0].awake:
+                        self.color_cell(x, y, color)
+                    else:
+                        self.color_cell(x, y, darken_color(color))
                 else:
                     self.color_cell(x, y, CELL_COLOR)
+
+def darken_color(hex_color):
+    """Darken hex color"""
+    hex_color = hex_color.removeprefix('#')
+    value = int(hex_color, 16)
+    new_value = (value & 0xfefefe) >> 1
+    new_color = f"#{hex(new_value).removeprefix('0x').ljust(6, '0')}"
+    return new_color
 
 if __name__ == "__main__":
     root = tk.Tk()

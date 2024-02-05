@@ -365,7 +365,6 @@ if __name__ == '__main__':
     stop = False
 
     while True:
-        print(f'day: {world.sun.is_day}, time to twighlight: {world.sun.time_to_twighlight}')
         print(world)
         for organism in world.organisms:
             print(organism)
