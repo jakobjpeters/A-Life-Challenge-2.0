@@ -2,9 +2,8 @@
 from random import randint, choice, uniform
 from math import ceil
 from enum import Enum
-from gui import *
 
-N_ORGANISMS = 3
+N_ORGANISMS = 5
 GRID_WIDTH = 5
 GRID_HEIGHT = 5
 STARTING_ENERGY_LEVEL = 5
@@ -340,14 +339,8 @@ def resolve_feeding(organism_1, organism_2):
 
 
 if __name__ == '__main__':
-    SHOW_GUI = False
     world = World()
     stop = False
-
-    if SHOW_GUI is True:
-        root = tk.Tk()
-        app = App(root, world)
-        root.mainloop()
 
     while True:
         print(world)
