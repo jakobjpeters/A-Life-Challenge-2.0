@@ -92,6 +92,16 @@ class Organism():
         if self.genome.phenotype[ENERGY_SOURCE] == ENERGY_SOURCE.photosynthesis:
             self.energy_level += self.photosynthesis_rate
 
+    def metabolize(self, is_day):
+        """
+        Adjust organism's energy level by a baseline metabolism rate. Metabolism
+        is reduced by half when an organism is asleep.
+        """
+        if self.awake:
+            self.energy_level -= self.metabolism_rate
+        else:
+            self.energy_level -= 0.5 * self.metabolism_rate
+
     def eat(self, other):
         """
         Increase energy_level by fractional amount
@@ -105,9 +115,9 @@ class Organism():
         return self.x, self.y
     
     def cycle_sleep_wake(self, is_day):
-        if self.genome.phenotype['sleep'] == 'diurnal':
+        if self.genome.phenotype[SLEEP] == SLEEP.diurnal:
             self.awake = is_day
-        elif self.genome.phenotype['sleep'] == 'nocturnal':
+        elif self.genome.phenotype[SLEEP] == SLEEP.nocturnal:
             self.awake = not is_day
 
     def __repr__(self) -> str:
@@ -129,7 +139,6 @@ class Organism():
         attributes += f'  energy_level:  {self.energy_level}\n'
         attributes += f'  genome:        {self.genome}\n'
         return attributes
-
 
 
 class Sun():
@@ -253,12 +262,13 @@ class World():
         for _organism in organisms:
 
             # FIXME: currently just moving randomly
-            self.move_organism(_organism, choice((-1, 0, 1)), choice((-1, 0, 1)))
-            if self.sun.is_day:
-                _organism.photosynthesize()
             if is_twighlight:
                 _organism.cycle_sleep_wake(self.sun.is_day)
-            _organism.energy_level -= _organism.metabolism_rate
+            if _organism.awake:
+                self.move_organism(_organism, choice((-1, 0, 1)), choice((-1, 0, 1)))
+            if self.sun.is_day:
+                _organism.photosynthesize()
+            _organism.metabolize(self.sun.is_day)
             if _organism.energy_level <= 0:
                 self.kill(_organism)
 
