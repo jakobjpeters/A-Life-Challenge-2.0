@@ -1,10 +1,15 @@
 import tkinter as tk
 import time
-from main import World
+from main import World, GRID_HEIGHT, GRID_WIDTH, BODY
 
 WIDTH = 800
 HEIGHT = 600
+CELL_SIZE = 50
 FPS_REFRESH_RATE = 1 # second
+CELL_COLOR = '#2f2f2f'
+BODY_COLORS = {body: color for body, color in zip(BODY, (
+    'white smoke', 'cyan', 'blue', 'purple1', 'pink', 'red', 'orange', 'yellow', 'green', 'black'
+))}
 
 class App:
     def __init__(self, root):
@@ -67,29 +72,29 @@ class App:
         # new frame for after pushing the start button
         start_screen_frame = tk.Frame(
             self.main_frame, width=800, height=600, bg='#ffffff')
-        canvas = tk.Canvas(start_screen_frame, width=800,
-                           height=600, bg='#2f2f2f')
-        canvas.pack()
+        self.canvas = tk.Canvas(start_screen_frame, width=800,
+                           height=600, bg='gray')
+        self.canvas.pack()
 
-        update_button = tk.Button(canvas, text="Update", command=self.update_button_command,
+        update_button = tk.Button(self.canvas, text="Update", command=self.update_button_command,
                         width=30, height=2, bg="#5189f0", fg="#FFFFFF", activebackground="#5C89f0")
         update_button.place(relx=0.8, rely=0.5, anchor=tk.CENTER)
 
         for i, color in enumerate(("blue", "red", "orange", "green", "white")):
-            canvas.create_text(550, 20 * i + 30, text="Live information will go here",
+            self.canvas.create_text(550, 20 * i + 30, text="Live information will go here",
                 font=('Times', 16), fill=color)
 
-        # text display for the world state
-        self.output_box = tk.Text(self.main_frame, wrap=tk.WORD, width=50,
-                                  height=30, bg='#3E3E3E', fg='#FFFFFF', font=('Times', 12))
-        self.output_box.place(relx=0.01, rely=0.01, anchor=tk.NW)
+        self.grid = []
+        for y in range(GRID_HEIGHT):
+            self.grid.append([])
+            for x in range(GRID_WIDTH):
+                _x, _y = CELL_SIZE * (x + 1), CELL_SIZE * (y + 1)
+                self.grid[y].append(self.canvas.create_rectangle(_x, _y, _x + CELL_SIZE, _y + CELL_SIZE))
 
-        # update text and show new frame
-        self.update_output_box()
         self.show_screen(start_screen_frame)
+        self.render()
 
     def update_button_command(self):
-        print("update")
         self.world.update()
         self.render()
 
@@ -99,14 +104,17 @@ class App:
     def about_button_command(self):
         print("About button command")
 
-    def update_output_box(self):
-        # clear the output box
-        self.output_box.delete(1.0, tk.END)
-        self.render()
+    def color_cell(self, x, y, color):
+        self.canvas.itemconfigure(self.grid[y][x], fill = color)
 
     def render(self):
-        self.output_box.delete(1.0, tk.END)
-        self.output_box.insert(tk.END, str(self.world))
+        for x in range(GRID_WIDTH):
+            for y in range(GRID_HEIGHT):
+                cell = self.world.grid[y][x]
+                if cell:
+                    self.color_cell(x, y, BODY_COLORS[cell[0].genome.phenotype[BODY]])
+                else:
+                    self.color_cell(x, y, CELL_COLOR)
 
 if __name__ == "__main__":
     root = tk.Tk()

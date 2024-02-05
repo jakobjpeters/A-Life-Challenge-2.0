@@ -3,7 +3,7 @@ from random import randint, choice, uniform
 from math import ceil
 from enum import Enum
 
-N_ORGANISMS = 3
+N_ORGANISMS = 5
 GRID_WIDTH = 5
 GRID_HEIGHT = 5
 STARTING_ENERGY_LEVEL = 5
