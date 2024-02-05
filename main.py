@@ -115,6 +115,7 @@ class Organism():
         return self.x, self.y
     
     def cycle_sleep_wake(self, is_day):
+        """Cycle between wake and sleep based on the sleep phenotype."""
         if self.genome.phenotype[SLEEP] == SLEEP.diurnal:
             self.awake = is_day
         elif self.genome.phenotype[SLEEP] == SLEEP.nocturnal:
