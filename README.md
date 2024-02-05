@@ -18,5 +18,3 @@ python -m pip install -r requirements.txt
 ```
 
 When developing and running the program, make sure the virtual environment is activated first by running `source .venv/bin/activate` from the project directory.
-
-
