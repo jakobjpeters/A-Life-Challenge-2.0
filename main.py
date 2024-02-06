@@ -226,21 +226,8 @@ class World():
             # TODO: reproduce if same species
             ...
 
-    def move_organism(self, _organism, dx, dy):
-        """
-        Move the given `_organism` to its current location plus `dx, dy`.
-        This new location must be within bounds of `self.grid`.
-        If its new cell is non-empty, handle collision.
-        """
-        self.remove_from_cell(_organism)
-        new_x = _organism.x + dx if _organism.x + dx < GRID_WIDTH else _organism.x
-        new_y = _organism.y + dy if _organism.y + dy < GRID_HEIGHT else _organism.y
-        x, y = new_x, new_y
-        _organism.update_location(x, y)
-        self.insert_to_cell(_organism)
-
-        if len(self.grid[y][x]) > 1:
-            self.collide(x, y)
+    
+    
 
     def pathfind(self, _organism):
         # dx = randint(0, _organism.movement)
@@ -363,6 +350,46 @@ def resolve_feeding(organism_1, organism_2):
         elif organism_2.energy_level > organism_1.energy_level:
             prey = organism_1
     return prey
+
+class Mutate():
+    def __init__(self, _organism, mutation_probability = 0.03):
+        self.organism = organism_instance
+        self.mutation_probability = mutation_probability
+        self.no_mutation_probability = 1 - mutation_probability
+
+    def get_choice_probabilities(self):
+        return {"mutate":self.mutation_probability, "not_mutate":self.no_mutation_probability} 
+
+    def mutate(self, outcome):
+        if outcome == "mutate":
+            _organism.genome.set_genotype
+        #elif outcome == "not_mutate":
+        
+
+
+class Procreate():
+    def __init__(self, _organism, probability = 0.5, requisite_energy = 5):
+        self.organism = organism_instance
+        self.procreate_probability = probability
+        self.not_procreate_probability = 1 - self.eat_probability
+    
+    def get_choice_probabilities(self):
+        if _organism.energy_level < requisite_energy:
+            return {"procreate":0 , "not_procreate":1}
+        return {"procreate":self.procreate_probability , "not_procreate":self.not_procreate_probability}
+
+
+    def probability_update(self, outcome):
+        if outcome == "procreate":
+            _organism.energy_level_update(1)
+            if elf.eat_probability < 1:
+                self.procreate_probability += 0.01
+        elif outcome == "not_procreate" and self.eat_probability > 0:
+            _organism.energy_level_update(-1)
+            if elf.eat_probability > 0:
+                self.procreate_probability -= 0.01
+
+
 
 
 if __name__ == '__main__':
