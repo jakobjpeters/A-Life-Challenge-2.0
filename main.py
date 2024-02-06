@@ -26,7 +26,21 @@ PREDATOR_PREY_TYPES = {ENERGY_SOURCE[predator]: [ENERGY_SOURCE[x] for x in prey]
 )}
 
 class Genome:
-    def __init__(self, phenotype={}, genotype={}):
+    """
+    This class will belong to a simulated organism.
+    The genotype encodes a specific (integer) value for each trait.
+    The phenotype maps from the values of the genotype to categorical traits.
+    """
+    def __init__(self, genotype={}, phenotype={}):
+        """
+        The `genotype` is a dictionary mapping from traits to an integer.
+        The `phenotype` is a dictionary mapping from traits to a category.
+        
+        Traits given in the `genotype` parameter will be used to determine that trait in the  phenotype.
+        Traits given in the `phenotype` but not in the `genotype` will be used to determine that trait in the `genotype`.
+        Traits not in either parameter will generate a random value for its value in the `genotype`,
+        which will determine its value in the `phenotype`.
+        """
         self.genotype, self.phenotype = {}, {}
 
         for trait in TRAITS:
@@ -40,13 +54,13 @@ class Genome:
 
     def set_phenotype(self, trait):
         """
-        Assumes `trait in self.genotype`.
+        Determines and sets the `trait` `self.phenotype` according to the traits value in `self.genotype`.
         """
         self.phenotype[trait] = trait(ceil(len(trait) * self.genotype[trait] / GENE_LENGTH))
 
     def set_genotype(self, trait):
         """
-        Assumes `trait in self.phenotype`
+        Determines and sets the `trait` `self.genotype` according to the traits value in `self.phenotype`.
         """
         self.genotype[trait] = ceil(GENE_LENGTH * self.phenotype[trait].value / len(trait))
 
@@ -149,6 +163,9 @@ class Sun():
     is_day = True
 
     def __init__(self, day_length=5):
+        """
+        Initializes `self.day_length` (default is 5 frames) and a counter to determine when day switches to night.
+        """
         self.day_length = day_length # currently implemented as days / frame
         self.time_to_twighlight = self.day_length
 
