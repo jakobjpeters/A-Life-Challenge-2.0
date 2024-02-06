@@ -278,7 +278,11 @@ class World():
         """
         Write the state of the simulation to a file, so that it can be resumed later.
         """
-        pass
+        with open("save_file.txt", mode="wt") as f:
+            f.write(str(grid) + '\n')
+            f.write(str(organisms) + '\n')
+            f.write(str(sun) + '\n')
+            f.write(str(frame) + '\n')
 
     def cell_content(self, x, y):
         "Accepts tuple integers x and y where y is the yth list and x is the xth position in the yth list."
