@@ -106,7 +106,7 @@ class Organism():
         if self.genome.phenotype[ENERGY_SOURCE] == ENERGY_SOURCE.photosynthesis:
             self.energy_level += self.photosynthesis_rate
 
-    def metabolize(self, is_day):
+    def metabolize(self):
         """
         Adjust organism's energy level by a baseline metabolism rate. Metabolism
         is reduced by half when an organism is asleep.
@@ -127,13 +127,6 @@ class Organism():
         Return a tuple of the organism's `x` and `y` coordinates.
         """
         return self.x, self.y
-    
-    def cycle_sleep_wake(self, is_day):
-        """Cycle between wake and sleep based on the sleep phenotype."""
-        if self.genome.phenotype[SLEEP] == SLEEP.diurnal:
-            self.awake = is_day
-        elif self.genome.phenotype[SLEEP] == SLEEP.nocturnal:
-            self.awake = not is_day
 
     def __repr__(self) -> str:
         """
@@ -187,7 +180,6 @@ class World():
     The `grid` is the environment, where `grid[y][x]` is a list of things in that cell.
     The `frame` is a counter which increases by `1` every time `update` is called.
     """
-    organisms = [Organism(randint(0, GRID_WIDTH - 1), randint(0, GRID_HEIGHT - 1)) for _ in range(N_ORGANISMS)]
     grid = [[[] for __ in range(GRID_WIDTH)] for _ in range(GRID_HEIGHT)]
     sun = Sun()
     frame = 0
@@ -196,9 +188,13 @@ class World():
         """
         Instantiate a simulated environment and append each organism to its respective cell.
         """
-        for _organism in self.organisms:
-            self.insert_to_cell(_organism)
-            _organism.cycle_sleep_wake(self.sun.is_day)
+        self.organisms = [self.spawn_organism(randint(0, GRID_WIDTH - 1), randint(0, GRID_HEIGHT - 1)) for _ in range(N_ORGANISMS)]
+
+    def spawn_organism(self, x, y):
+        _organism = Organism(x, y)
+        self.insert_to_cell(_organism)
+        _organism.awake = (_organism.genome.phenotype[SLEEP] == SLEEP.diurnal) == self.sun.is_day
+        return _organism
 
     def get_cell(self, _organism):
         """
@@ -276,17 +272,16 @@ class World():
         is_twighlight = self.sun.time_to_twighlight == 1
         self.sun.update()
        
-        organisms = self.organisms.copy()
-        for _organism in organisms:
+        for _organism in self.organisms.copy():
 
             # FIXME: currently just moving randomly
             if is_twighlight:
-                _organism.cycle_sleep_wake(self.sun.is_day)
+                _organism.awake = not _organism.awake
             if _organism.awake:
                 self.move_organism(_organism, choice((-1, 0, 1)), choice((-1, 0, 1)))
             if self.sun.is_day:
                 _organism.photosynthesize()
-            _organism.metabolize(self.sun.is_day)
+            _organism.metabolize()
             if _organism.energy_level <= 0:
                 self.kill(_organism)
 
