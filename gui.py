@@ -4,7 +4,7 @@ from main import World, GRID_HEIGHT, GRID_WIDTH, BODY
 
 WIDTH = 800
 HEIGHT = 600
-CELL_SIZE = 50
+CELL_SIZE = 20
 FPS_REFRESH_RATE = 1 # second
 CELL_COLOR = '#2f2f2f'
 BODY_COLORS = {body: color for body, color in zip(BODY, (
@@ -165,10 +165,11 @@ if __name__ == "__main__":
         root.update_idletasks()
         root.update()
 
-        counter += 1
-        current = time.time()
-        elapsed = current - start
-        if elapsed > FPS_REFRESH_RATE:
-            print("FPS: ", counter / elapsed)
-            counter = 0
-            start = current
+        if False:
+            counter += 1
+            current = time.time()
+            elapsed = current - start
+            if elapsed > FPS_REFRESH_RATE:
+                print("FPS: ", counter / elapsed)
+                counter = 0
+                start = current

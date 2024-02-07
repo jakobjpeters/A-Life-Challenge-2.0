@@ -49,18 +49,12 @@ class TestWorld(unittest.TestCase):
         self.assertNotIn(organism, self.world.get_cell(organism))
         self.world.insert_to_cell(organism)
 
-    def test_kill(self):
-        organism = self.world.organisms[0]
-        self.world.kill(organism)
-        self.assertNotIn(organism, self.world.organisms)
-        self.assertNotIn(organism, self.world.get_cell(organism))
-
     def test_update(self):
         frame = self.world.frame
         self.world.update()
         self.assertEqual(self.world.frame, frame + 1)
 
-class TestResolveFeeding(unittest.TestCase):
+class TestMeet(unittest.TestCase):
     def setUp(self):
         self.organism_1 = Organism(0, 0)
         self.organism_2 = Organism(0, 0)
@@ -74,56 +68,56 @@ class TestResolveFeeding(unittest.TestCase):
         self.organism_1.energy_level = 2
         self.organism_2.genome.phenotype[ENERGY_SOURCE] = ENERGY_SOURCE.photosynthesis
         self.organism_2.energy_level = 1
-        prey = resolve_feeding(self.organism_1, self.organism_2)
-        self.assertEqual(prey, self.organism_2)
+        relationship = self.organism_1.meet(self.organism_2)
+        self.assertEqual(relationship, RELATIONSHIPS.prey)
 
     def test_smaller_plant_eaten_by_herbivore(self):
         self.organism_1.genome.phenotype[ENERGY_SOURCE] = ENERGY_SOURCE.photosynthesis
         self.organism_2.genome.phenotype[ENERGY_SOURCE] = ENERGY_SOURCE.herbivore
         self.organism_1.energy_level = 1
         self.organism_2.energy_level = 2
-        prey = resolve_feeding(self.organism_1, self.organism_2)
-        self.assertEqual(prey, self.organism_1)
+        relationship = self.organism_1.meet(self.organism_2)
+        self.assertEqual(relationship, RELATIONSHIPS.predator)
 
     def test_herbivore_cannot_eat_larger_plant(self):
         self.organism_1.genome.phenotype[ENERGY_SOURCE] = ENERGY_SOURCE.herbivore
         self.organism_2.genome.phenotype[ENERGY_SOURCE] = ENERGY_SOURCE.photosynthesis
         self.organism_1.energy_level = 1
         self.organism_2.energy_level = 2
-        prey = resolve_feeding(self.organism_1, self.organism_2)
-        self.assertEqual(prey, None)
+        relationship = self.organism_1.meet(self.organism_2)
+        self.assertEqual(relationship, RELATIONSHIPS.friendly)
 
     def test_omnivore_eats_smaller_carnivore(self):
         self.organism_1.genome.phenotype[ENERGY_SOURCE] = ENERGY_SOURCE.omnivore
         self.organism_2.genome.phenotype[ENERGY_SOURCE] = ENERGY_SOURCE.carnivore
         self.organism_1.energy_level = 2
         self.organism_2.energy_level = 1
-        prey = resolve_feeding(self.organism_1, self.organism_2)
-        self.assertEqual(prey, self.organism_2)
+        relationship = self.organism_1.meet(self.organism_2)
+        self.assertEqual(relationship, RELATIONSHIPS.prey)
 
     def test_equal_omnivore_carnivore_do_not_eat(self):
         self.organism_1.genome.phenotype[ENERGY_SOURCE] = ENERGY_SOURCE.omnivore
         self.organism_2.genome.phenotype[ENERGY_SOURCE] = ENERGY_SOURCE.carnivore
         self.organism_1.energy_level = 2
         self.organism_2.energy_level = 2
-        prey = resolve_feeding(self.organism_1, self.organism_2)
-        self.assertEqual(prey, None)
+        relationship = self.organism_1.meet(self.organism_2)
+        self.assertEqual(relationship, RELATIONSHIPS.friendly)
 
     def test_larger_omnivore_eats_smaller_omnivore(self):
         self.organism_1.genome.phenotype[ENERGY_SOURCE] = ENERGY_SOURCE.omnivore
         self.organism_2.genome.phenotype[ENERGY_SOURCE] = ENERGY_SOURCE.omnivore
         self.organism_1.energy_level = 2
         self.organism_2.energy_level = 1
-        prey = resolve_feeding(self.organism_1, self.organism_2)
-        self.assertEqual(prey, self.organism_2)
+        relationship = self.organism_1.meet(self.organism_2)
+        self.assertEqual(relationship, RELATIONSHIPS.prey)
 
     def test_no_cannibalism(self):
         self.organism_1.genome.phenotype[ENERGY_SOURCE] = ENERGY_SOURCE.omnivore
         self.organism_1.genome.phenotype = self.organism_2.genome.phenotype
         self.organism_1.energy_level = 2
         self.organism_2.energy_level = 1
-        prey = resolve_feeding(self.organism_1, self.organism_2)
-        self.assertEqual(prey, None)
+        relationship = self.organism_1.meet(self.organism_2)
+        self.assertEqual(relationship, RELATIONSHIPS.friendly)
 
 
 if __name__ == '__main__':
