@@ -9,6 +9,7 @@ GRID_HEIGHT = 5
 STARTING_ENERGY_LEVEL = 5
 GENE_LENGTH = 50 # increasing GENE_LENGTH will make the odds of a mutation decrease
 EAT_ENERGY_RATE = 0.5
+VISIBLE_RANGE = 2
 
 REPRODUCTION = Enum('Reproduction', ['sexual', 'asexual'])
 ENERGY_SOURCE = Enum('EnergySource', ['photosynthesis', 'herbivore', 'carnivore', 'omnivore'])
@@ -106,13 +107,13 @@ class Organism():
         if self.genome.phenotype[ENERGY_SOURCE] == ENERGY_SOURCE.photosynthesis:
             self.energy_level += self.photosynthesis_rate
 
-    def metabolize(self):
+    def metabolize(self, x = 1):
         """
         Adjust organism's energy level by a baseline metabolism rate. Metabolism
         is reduced by half when an organism is asleep.
         """
         if self.awake:
-            self.energy_level -= self.metabolism_rate
+            self.energy_level -= x * self.metabolism_rate
         else:
             self.energy_level -= 0.5 * self.metabolism_rate
 
@@ -250,6 +251,7 @@ class World():
         new_y = _organism.y + dy if _organism.y + dy < GRID_HEIGHT else _organism.y
         x, y = new_x, new_y
         _organism.update_location(x, y)
+        _organism.metabolize(dx + dy)
         self.insert_to_cell(_organism)
 
         if len(self.grid[y][x]) > 1:
@@ -278,13 +280,12 @@ class World():
             if is_twighlight:
                 _organism.awake = not _organism.awake
             if _organism.awake:
-                self.move_organism(_organism, choice((-1, 0, 1)), choice((-1, 0, 1)))
+                self.pathfind(_organism)
             if self.sun.is_day:
                 _organism.photosynthesize()
             _organism.metabolize()
             if _organism.energy_level <= 0:
                 self.kill(_organism)
-
 
     def save(self):
         """
