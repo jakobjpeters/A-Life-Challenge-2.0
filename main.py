@@ -12,16 +12,6 @@ VISIBLE_RANGE = 2
 
 seed(10)  # set to constant for reproducible simulations
 
-# RELATIONSHIPS = Enum('Relationships', ['friendly', 'prey', 'predator'])
-
-# REPRODUCTION = Enum('Reproduction', ['sexual', 'asexual'])
-# EnergySource = Enum('EnergySource', ['photosynthesis', 'herbivore', 'carnivore', 'omnivore'])
-# SKIN = Enum('Skin', ['fur', 'shell', 'camouflage', 'membrane', 'quills'])
-# MOVEMENT = Enum('Movement', ['stationary', 'bipedal', 'quadripedal'])
-# SLEEP = Enum('Sleep', ['diurnal', 'nocturnal'])
-# BODY = Enum('Body', ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'])
-# TRAITS = [REPRODUCTION, EnergySource, SKIN, MOVEMENT, SLEEP, BODY]
-
 
 class Relationships(Enum):
     FRIENDLY = auto()
