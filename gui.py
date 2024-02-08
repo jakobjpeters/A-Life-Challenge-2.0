@@ -1,7 +1,10 @@
+import os
+import pickle
 import tkinter as tk
 import time
 from main import World, GRID_HEIGHT, GRID_WIDTH, Body
 
+WORLD_TO_LOAD = 'world.pkl'  # put as empty string to not use existing simulation
 WIDTH = 800
 HEIGHT = 600
 CELL_SIZE = 20
@@ -78,7 +81,16 @@ class App:
         The right side of the screen contains a button to calculate the next frame and
         will display other information about the simulation.
         """
-        self.world = World()
+        # FIXME: option to load / save worlds in GUI
+        world_to_load = 'world.pkl'  # set None
+        if world_to_load:
+            with open('world.pkl', 'rb') as pkl:
+                self.world = pickle.load(pkl)
+                print(self.world)
+        else:
+            self.world = World()
+            with open('world.pkl', 'wb') as pkl:
+                pickle.dump(self.world, pkl)
 
         # new frame for after pushing the start button
         start_screen_frame = tk.Frame(

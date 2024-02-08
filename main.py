@@ -1,5 +1,4 @@
-
-from random import randint, choice, uniform
+from random import randint, choice, uniform, seed
 from math import ceil
 from enum import Enum, auto
 
@@ -10,6 +9,9 @@ STARTING_ENERGY_LEVEL = 10
 GENE_LENGTH = 50 # increasing GENE_LENGTH will make the odds of a mutation decrease
 EAT_ENERGY_RATE = 0.5
 VISIBLE_RANGE = 2
+
+seed(10)  # set to constant for reproducible simulations
+
 # RELATIONSHIPS = Enum('Relationships', ['friendly', 'prey', 'predator'])
 
 # REPRODUCTION = Enum('Reproduction', ['sexual', 'asexual'])
@@ -295,7 +297,7 @@ class World():
     The `grid` is the environment, where `grid[y][x]` is a list of things in that cell.
     The `frame` is a counter which increases by `1` every time `update` is called.
     """
-    grid = [[[] for __ in range(GRID_WIDTH)] for _ in range(GRID_HEIGHT)]
+
     sun = Sun()
     frame = 0
 
@@ -303,6 +305,7 @@ class World():
         """
         Instantiate a simulated environment and append each organism to its respective cell.
         """
+        self.grid = [[[] for __ in range(GRID_WIDTH)] for _ in range(GRID_HEIGHT)]
         self.organisms = [self.spawn_organism(randint(0, GRID_WIDTH - 1), randint(0, GRID_HEIGHT - 1)) for _ in range(N_ORGANISMS)]
 
     def spawn_organism(self, x, y):
