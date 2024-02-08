@@ -4,7 +4,6 @@ import tkinter as tk
 import time
 from main import World, GRID_HEIGHT, GRID_WIDTH, Body
 
-WORLD_TO_LOAD = 'world.pkl'  # put as empty string to not use existing simulation
 WIDTH = 800
 HEIGHT = 600
 CELL_SIZE = 20
