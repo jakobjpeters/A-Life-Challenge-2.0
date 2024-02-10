@@ -1,7 +1,6 @@
-
-from random import randint, choice, uniform
+from random import randint, choice, uniform, seed
 from math import ceil
-from enum import Enum
+from enum import Enum, auto
 
 N_ORGANISMS = 100
 GRID_WIDTH = 20
@@ -10,22 +9,68 @@ STARTING_ENERGY_LEVEL = 10
 GENE_LENGTH = 50 # increasing GENE_LENGTH will make the odds of a mutation decrease
 EAT_ENERGY_RATE = 0.5
 VISIBLE_RANGE = 2
-RELATIONSHIPS = Enum('Relationships', ['friendly', 'prey', 'predator'])
 
-REPRODUCTION = Enum('Reproduction', ['sexual', 'asexual'])
-ENERGY_SOURCE = Enum('EnergySource', ['photosynthesis', 'herbivore', 'carnivore', 'omnivore'])
-SKIN = Enum('Skin', ['fur', 'shell', 'camouflage', 'membrane', 'quills'])
-MOVEMENT = Enum('Movement', ['stationary', 'bipedal', 'quadripedal'])
-SLEEP = Enum('Sleep', ['diurnal', 'nocturnal'])
-BODY = Enum('Body', ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'])
-TRAITS = [REPRODUCTION, ENERGY_SOURCE, SKIN, MOVEMENT, SLEEP, BODY]
+seed(10)  # set to constant for reproducible simulations
 
-PREDATOR_PREY_TYPES = {ENERGY_SOURCE[predator]: [ENERGY_SOURCE[x] for x in prey] for predator, prey in (
-    ("herbivore", ["photosynthesis"]),
-    ("carnivore", ["omnivore", "carnivore", "herbivore"]),
-    ("omnivore", ["omnivore", "carnivore", "herbivore", "photosynthesis"]),
-    ("photosynthesis", [])
+
+class Relationships(Enum):
+    FRIENDLY = auto()
+    PREY = auto()
+    PREDATOR = auto()
+
+class Reproduction(Enum):
+    SEXUAL = auto()
+    ASEXUAL = auto()
+
+
+class EnergySource(Enum):
+    PHOTOSYNTHESIS = auto()
+    HERBIVORE = auto()
+    CARNIVORE = auto()
+    OMNIVORE = auto()
+
+
+class Skin(Enum):
+    FUR = auto()
+    SHELL = auto()
+    CAMOFLAUGE = auto()
+    MEMBRANE = auto()
+    QUILLS = auto()
+
+
+class Movement(Enum):
+    STATIONARY = auto()
+    BIPEDAL = auto()
+    QUADRIPEDAL = auto()
+
+
+class Sleep(Enum):
+    DIURNAL = auto()
+    NOCTURNAL = auto()
+
+
+class Body(Enum):
+    ONE = 1
+    TWO = 2
+    THREE = 3
+    FOUR = 4
+    FIVE = 5
+    SIX = 6
+    SEVEN = 7
+    EIGHT = 8
+    NINE = 9
+    TEN = 10
+
+
+PREDATOR_PREY_TYPES = {EnergySource[predator]: [EnergySource[x] for x in prey] for predator, prey in (
+    ("HERBIVORE", ["PHOTOSYNTHESIS"]),
+    ("CARNIVORE", ["OMNIVORE", "CARNIVORE", "HERBIVORE"]),
+    ("OMNIVORE", ["OMNIVORE", "CARNIVORE", "HERBIVORE", "PHOTOSYNTHESIS"]),
+    ("PHOTOSYNTHESIS", [])
 )}
+
+
+TRAITS = [Relationships, Reproduction, EnergySource, Skin, Movement, Sleep, Body]
 
 def distance(xy, _xy):
     """
@@ -125,7 +170,7 @@ class Organism():
         Increase energy_level by an organisms photosynthesis_rate if self
         has the photosynthesis phenotype
         """
-        if self.genome.phenotype[ENERGY_SOURCE] == ENERGY_SOURCE.photosynthesis:
+        if self.genome.phenotype[EnergySource] == EnergySource.PHOTOSYNTHESIS:
             self.energy_level += self.photosynthesis_rate
 
     def metabolize(self, x = 1):
@@ -168,27 +213,27 @@ class Organism():
 
         # No cannibalism.
         if phenotype_1 == phenotype_2:
-            return RELATIONSHIPS.friendly
+            return Relationships.FRIENDLY
 
-        organism_1_type = phenotype_1[ENERGY_SOURCE]
-        organism_2_type = phenotype_2[ENERGY_SOURCE]
+        organism_1_type = phenotype_1[EnergySource]
+        organism_2_type = phenotype_2[EnergySource]
         organism_1_prey_types = PREDATOR_PREY_TYPES[organism_1_type]
         organism_2_prey_types = PREDATOR_PREY_TYPES[organism_2_type]
         organism_1_can_eat_organism_2 = organism_2_type in organism_1_prey_types
         organism_2_can_eat_organism_1 = organism_1_type in organism_2_prey_types
 
-        relationship = RELATIONSHIPS.friendly
+        relationship = Relationships.FRIENDLY
         if organism_1_can_eat_organism_2 and not organism_2_can_eat_organism_1:
             if self.energy_level > other.energy_level:
-                relationship = RELATIONSHIPS.prey
+                relationship = Relationships.PREY
         elif organism_2_can_eat_organism_1 and not organism_1_can_eat_organism_2:
             if other.energy_level > self.energy_level:
-                relationship = RELATIONSHIPS.predator
+                relationship = Relationships.PREDATOR
         elif organism_1_can_eat_organism_2 and organism_2_can_eat_organism_1:
             if self.energy_level > other.energy_level:
-                relationship = RELATIONSHIPS.prey
+                relationship = Relationships.PREY
             elif other.energy_level > self.energy_level:
-                relationship = RELATIONSHIPS.predator
+                relationship = Relationships.PREDATOR
         return relationship
 
     def __repr__(self) -> str:
@@ -242,7 +287,7 @@ class World():
     The `grid` is the environment, where `grid[y][x]` is a list of things in that cell.
     The `frame` is a counter which increases by `1` every time `update` is called.
     """
-    grid = [[[] for __ in range(GRID_WIDTH)] for _ in range(GRID_HEIGHT)]
+
     sun = Sun()
     frame = 0
 
@@ -250,12 +295,13 @@ class World():
         """
         Instantiate a simulated environment and append each organism to its respective cell.
         """
+        self.grid = [[[] for __ in range(GRID_WIDTH)] for _ in range(GRID_HEIGHT)]
         self.organisms = [self.spawn_organism(randint(0, GRID_WIDTH - 1), randint(0, GRID_HEIGHT - 1)) for _ in range(N_ORGANISMS)]
 
     def spawn_organism(self, x, y):
         _organism = Organism(x, y)
         self.insert_to_cell(_organism)
-        _organism.awake = (_organism.genome.phenotype[SLEEP] == SLEEP.diurnal) == self.sun.is_day
+        _organism.awake = (_organism.genome.phenotype[Sleep] == Sleep.DIURNAL) == self.sun.is_day
         return _organism
 
     def get_cell(self, _organism):
@@ -288,13 +334,13 @@ class World():
 
         relationship = organism_1.meet(organism_2)
 
-        if relationship == RELATIONSHIPS.friendly:
+        if relationship == Relationships.FRIENDLY:
             # maybe reproduce
             pass
-        elif relationship == RELATIONSHIPS.prey:
+        elif relationship == Relationships.PREY:
             organism_1.eat(organism_2)
             self.remove_from_cell(organism_2)
-        elif relationship == RELATIONSHIPS.predator:
+        elif relationship == Relationships.PREDATOR:
             organism_2.eat(organism_1)
             self.remove_from_cell(organism_1)
 
@@ -331,7 +377,7 @@ class World():
         """
         x, y = _organism.get_location()
         _distance = 0
-        action = RELATIONSHIPS.friendly
+        action = Relationships.FRIENDLY
         _reachable_cells = reachable_cells(x, y, VISIBLE_RANGE)
 
         for _x, _y in _reachable_cells:
@@ -347,7 +393,7 @@ class World():
         if (x, y) == _organism.get_location():
             (x, y) = choice(list(reachable_cells(x, y, 1)))
 
-        if action == RELATIONSHIPS.predator:
+        if action == Relationships.PREDATOR:
             dx, dy = 0, 0
             for _x, _y in _reachable_cells:
                 __distance = distance((x, y), (_x, _y))
