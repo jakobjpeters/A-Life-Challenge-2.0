@@ -1,20 +1,24 @@
+import os
+import pickle
 import tkinter as tk
 import time
-from main import World, GRID_HEIGHT, GRID_WIDTH, BODY
+from main import World, GRID_HEIGHT, GRID_WIDTH, Body
 
 WIDTH = 800
 HEIGHT = 600
-CELL_SIZE = 50
+CELL_SIZE = 20
 FPS_REFRESH_RATE = 1 # second
 CELL_COLOR = '#2f2f2f'
-# BODY_COLORS = {body: color for body, color in zip(BODY, (
-#     'white smoke', 'cyan', 'blue', 'purple1', 'pink', 'red', 'orange', 'yellow', 'green', 'black'
-# ))}
-BODY_COLORS = {body: color for body, color in zip(BODY, (
+BODY_COLORS = {body: color for body, color in zip(Body, (
     '#f5f5f5', '#00FFFF', '#0000FF', '#9b30ff', '#ffc0cb', '#ff0000', '#FFA500', '#FFFF00', '#00FF00', '#000000'
 ))}
 
 class App:
+    """
+    Controls the GUI for the simulation.
+    `self.root` is the `tk.Tk()` instance.
+    """
+
     def __init__(self, root):
         self.root = root
         root.title("A-Life Challenge")
@@ -70,7 +74,22 @@ class App:
         self.main_frame.pack(fill=tk.BOTH, expand=True)
 
     def start_button_command(self):
-        self.world = World()
+        """
+        Starts the simulation by instantiating a new `World`.
+        The left side of the simulation displays the simulated environment.
+        The right side of the screen contains a button to calculate the next frame and
+        will display other information about the simulation.
+        """
+        # FIXME: option to load / save worlds in GUI
+        world_to_load = 'world.pkl'  # set None
+        if world_to_load:
+            with open('world.pkl', 'rb') as pkl:
+                self.world = pickle.load(pkl)
+                print(self.world)
+        else:
+            self.world = World()
+            with open('world.pkl', 'wb') as pkl:
+                pickle.dump(self.world, pkl)
 
         # new frame for after pushing the start button
         start_screen_frame = tk.Frame(
@@ -98,6 +117,10 @@ class App:
         self.render()
 
     def update_button_command(self):
+        """
+        When the `update` button is clicked, simulate the next frame in the simulation.
+        When the simulation changes between day and night, change the color of the GUI to reflect that.
+        """
         self.world.update()
         if self.world.sun.is_day:
             self.canvas.configure(bg='white')
@@ -112,14 +135,22 @@ class App:
         print("About button command")
 
     def color_cell(self, x, y, color):
+        """
+        Changes the cell given by `x` and `y` to the given `color`.
+        """
         self.canvas.itemconfigure(self.grid[y][x], fill = color)
 
     def render(self):
+        """
+        Changes the color of each cell to display that it's empty of contains an organism.
+        The color of an organism is determined by its `body` trait.
+        If the organism is asleep, its color appear darker.
+        """
         for x in range(GRID_WIDTH):
             for y in range(GRID_HEIGHT):
                 cell = self.world.grid[y][x]
                 if cell:
-                    color = BODY_COLORS[cell[0].genome.phenotype[BODY]]
+                    color = BODY_COLORS[cell[0].genome.phenotype[Body]]
                     if cell[0].awake:
                         self.color_cell(x, y, color)
                     else:
@@ -145,11 +176,11 @@ if __name__ == "__main__":
         root.update_idletasks()
         root.update()
 
-        counter += 1
-        current = time.time()
-        elapsed = current - start
-        if elapsed > FPS_REFRESH_RATE:
-            print("FPS: ", counter / elapsed)
-            counter = 0
-            start = current
-
+        if False:
+            counter += 1
+            current = time.time()
+            elapsed = current - start
+            if elapsed > FPS_REFRESH_RATE:
+                print("FPS: ", counter / elapsed)
+                counter = 0
+                start = current
