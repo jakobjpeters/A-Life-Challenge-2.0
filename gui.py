@@ -34,7 +34,7 @@ class App:
         # create frames for screens
         self.main_frame = tk.Frame(root, width=800, height=600, bg='#ffffff')
         self.button_frame = tk.Frame(
-            self.main_frame, width=250, height=200, bg='#3E3E3E')
+            self.main_frame, width=250, height=200)
 
         # dynamic coordinates
         canvas_center_x = WIDTH / 2
@@ -47,15 +47,15 @@ class App:
 
         # buttons on the button canvas
         start_button = tk.Button(button_canvas, text="Start", command=self.start_button_command,
-                                 width=30, height=2, bg="#5189f0", fg="#FFFFFF", activebackground="#5C89f0")
+                                 width=30, height=2)
         start_button.place(relx=0.5, rely=0.2, anchor=tk.CENTER)
 
         load_button = tk.Button(button_canvas, text="Load", command=self.load_button_command,
-                                width=30, height=2, bg="#5189f0", fg="#FFFFFF", activebackground="#5C89f0")
+                                width=30, height=2)
         load_button.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
         about_button = tk.Button(button_canvas, text="About", command=self.about_button_command,
-                                 width=30, height=2, bg="#5189f0", fg="#FFFFFF", activebackground="#5C89f0")
+                                 width=30, height=2)
         about_button.place(relx=0.5, rely=0.8, anchor=tk.CENTER)
 
         # label box
@@ -99,7 +99,7 @@ class App:
         self.canvas.pack()
 
         update_button = tk.Button(self.canvas, text="Update", command=self.update_button_command,
-                        width=30, height=2, bg="#5189f0", fg="#FFFFFF", activebackground="#5C89f0")
+                        width=30, height=2)
         update_button.place(relx=0.8, rely=0.5, anchor=tk.CENTER)
 
         for i, color in enumerate(("blue", "red", "orange", "green", "white")):
@@ -162,7 +162,7 @@ def darken_color(hex_color):
     """Darken hex color"""
     hex_color = hex_color.removeprefix('#')
     value = int(hex_color, 16)
-    new_value = (value & 0xfefefe) >> 1
+    new_value = (value & 0x7e7e7e) >> 1 | (value & 0x808080)
     new_color = f"#{hex(new_value).removeprefix('0x').ljust(6, '0')}"
     return new_color
 
