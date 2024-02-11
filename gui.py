@@ -10,7 +10,7 @@ CELL_SIZE = 20
 FPS_REFRESH_RATE = 1 # second
 CELL_COLOR = '#2f2f2f'
 BODY_COLORS = {body: color for body, color in zip(Body, (
-    '#f5f5f5', '#00FFFF', '#0000FF', '#9b30ff', '#ffc0cb', '#ff0000', '#FFA500', '#FFFF00', '#00FF00', '#000000'
+    '#f5f5f5', '#00FFFF', '#0000FF', '#9b30ff', '#ffc0cb', '#ff0000', '#FFA500', '#FFF000', '#00FF00', '#000000'
 ))}
 
 class App:
@@ -65,12 +65,15 @@ class App:
         # show the initial screen
         self.show_screen(self.button_frame)
 
+        self.tracked_organism = None
+
     def show_screen(self, screen_frame):
         # hide other screen and display selected one
         self.button_frame.pack_forget()
         self.main_frame.pack_forget()
         screen_frame.pack(fill=tk.BOTH, expand=True)
         self.main_frame.pack(fill=tk.BOTH, expand=True)
+
 
     def start_button_command(self):
         """
@@ -80,11 +83,10 @@ class App:
         will display other information about the simulation.
         """
         # FIXME: option to load / save worlds in GUI
-        world_to_load = 'world.pkl'  # set None
+        world_to_load = ''  # set None
         if world_to_load:
             with open('world.pkl', 'rb') as pkl:
                 self.world = pickle.load(pkl)
-                print(self.world)
         else:
             self.world = World()
             with open('world.pkl', 'wb') as pkl:
@@ -95,27 +97,32 @@ class App:
             self.main_frame, width=800, height=600, bg='#ffffff')
         self.canvas = tk.Canvas(start_screen_frame, width=800,
                            height=600)
-        self.canvas.pack()
 
         update_button = tk.Button(self.canvas, text="Update", command=self.update_button_command,
                         width=30, height=2)
         update_button.place(relx=0.8, rely=0.5, anchor=tk.CENTER)
 
-        for i, color in enumerate(("blue", "red", "orange", "green", "white")):
-            self.canvas.create_text(550, 20 * i + 30, text="Live information will go here",
-                font=('Times', 16), fill=color)
+        self.organism_info_area = tk.Label(self.main_frame, justify=tk.LEFT, anchor='w', font='TkFixedFont', text='Hover over organism to view details')
+        self.organism_info_area.place(anchor=tk.N, relx=0.9, rely=0.0, width=500, height=200)
+        self.canvas.pack()
 
         self.grid = []
         for y in range(GRID_HEIGHT):
             self.grid.append([])
             for x in range(GRID_WIDTH):
                 _x, _y = CELL_SIZE * (x + 1), CELL_SIZE * (y + 1)
-                self.grid[y].append(self.canvas.create_rectangle(
+                rect = self.canvas.create_rectangle(
                     _x, _y, _x + CELL_SIZE,
                     _y + CELL_SIZE,
                     fill='',
-                    outline=''
-                ))
+                    outline='',                    
+                )
+                self.grid[y].append(rect)
+
+                # attach callback functions to cell when its clicked or hovered
+                self.canvas.tag_bind(rect, '<Enter>', lambda _, x=x, y=y: self.view_organism_details(x, y))
+                self.canvas.tag_bind(rect, '<Button-1>', lambda _, x=x, y=y: self.view_organism_details(x, y, clicked=True))
+                self.canvas.tag_bind(rect, '<Leave>', lambda _: self.clear_organism_details())
 
         self.show_screen(start_screen_frame)
         self.render()
@@ -126,6 +133,8 @@ class App:
         When the simulation changes between day and night, change the color of the GUI to reflect that.
         """
         self.world.update()
+        if self.tracked_organism:
+            self.organism_info_area.configure(text=str(self.tracked_organism))
         if self.world.sun.is_day:
             self.canvas.configure(bg='white')
         else:
@@ -142,7 +151,14 @@ class App:
         """
         Changes the cell given by `x` and `y` to the given `color`.
         """
-        self.canvas.itemconfigure(self.grid[y][x], fill = color)
+        self.canvas.itemconfigure(self.grid[y][x], fill=color, outline='')
+
+    def highlight_cell(self, x, y):
+        """
+        Give cell a cell at `x` and `y` a yellow outline.
+        """
+        self.canvas.itemconfigure(self.grid[y][x], outline='yellow', width=3)
+        self.canvas.tag_raise(self.grid[x][y])
 
     def render(self):
         """
@@ -154,13 +170,59 @@ class App:
             for y in range(GRID_HEIGHT):
                 cell = self.world.grid[y][x]
                 if cell:
-                    color = BODY_COLORS[cell[0].genome.phenotype[Body]]
-                    if cell[0].awake:
+                    organism = cell[0]
+                    color = BODY_COLORS[organism.genome.phenotype[Body]]
+                    if organism.awake:
                         self.color_cell(x, y, color)
                     else:
                         self.color_cell(x, y, darken_color(color))
+                    if organism is self.tracked_organism:
+                        self.highlight_cell(x, y)
                 else:
                     self.color_cell(x, y, CELL_COLOR)
+
+    def view_organism_details(self, x, y, clicked=False):
+        """
+        Show details about an organism.
+
+        When hovering over an organism, that organism's info is shown. If
+        an organism is clicked, it will become "tracked" and its details
+        will be shown at all times (except temporarily when hovering over
+        another organism)
+        """
+        cell_content = self.world.cell_content(x, y)
+        if cell_content:
+            organism = cell_content[0]
+            self.organism_info_area.configure(text=str(organism))
+            if clicked:
+                self.clear_tracked_organism()
+                if organism is self.tracked_organism:
+                    self.clear_organism_details()
+                    return
+                self.highlight_cell(x, y)
+                self.tracked_organism = organism
+        elif clicked:
+            self.clear_tracked_organism()
+            self.clear_organism_details()
+
+    def clear_organism_details(self):
+        """
+        Clear text in `self.organism_info_area`, or show the currently
+        tracked organism's info if there is one.
+        """
+        if self.tracked_organism:
+            self.organism_info_area.configure(text=str(self.tracked_organism))
+        else:
+            self.organism_info_area.configure(text='')
+
+    def clear_tracked_organism(self):
+        """
+        No longer track the currently tracked organism and remove its highlight.
+        """
+        if self.tracked_organism:
+            old_loc = self.tracked_organism.get_location()
+            self.canvas.itemconfigure(self.grid[old_loc[1]][old_loc[0]], outline='')
+            self.tracked_organism = None
 
 def darken_color(hex_color):
     """Darken hex color"""

@@ -1,3 +1,5 @@
+import textwrap
+
 from random import randint, choice, uniform, seed
 from math import ceil
 from enum import Enum, auto
@@ -70,7 +72,7 @@ PREDATOR_PREY_TYPES = {EnergySource[predator]: [EnergySource[x] for x in prey] f
 )}
 
 
-TRAITS = [Relationships, Reproduction, EnergySource, Skin, Movement, Sleep, Body]
+TRAITS = [Reproduction, EnergySource, Skin, Movement, Sleep, Body]
 
 def distance(xy, _xy):
     """
@@ -134,7 +136,10 @@ class Genome:
         print("Genotype: ", self.genotype)
 
     def __str__(self):
-        return str(self.phenotype)
+        string = ''
+        for trait in TRAITS:
+            string += f'{trait.__name__}: {self.phenotype[trait].name}\n'
+        return string
 
 class Organism():
     """
@@ -249,11 +254,12 @@ class Organism():
         This is used to display the organism when calling `print`.
         """
         attributes = ''
-        attributes += f'Organism {self.__repr__()}:\n'
-        attributes += f'  awake:         {self.awake}'
+        attributes += f'Organism {self.__repr__()}{" (dead)" if not self.alive else ""}:\n'
+        attributes += f'  awake:         {self.awake}\n'
         attributes += f'  position:      x: {self.x}, y: {self.y}\n'
         attributes += f'  energy_level:  {self.energy_level}\n'
-        attributes += f'  genome:        {self.genome}\n'
+        attributes += f'  genome:\n'
+        attributes += f'{textwrap.indent(str(self.genome), "    ")}'
         return attributes
 
 class Sun():
