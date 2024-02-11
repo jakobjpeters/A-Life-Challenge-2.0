@@ -29,12 +29,12 @@ class App:
         alignstr = '%dx%d+%d+%d' % (WIDTH, HEIGHT,
                                     (screenwidth - WIDTH) / 2, (screenheight - HEIGHT) / 2)
         root.geometry(alignstr)
-        root.resizable(width=False, height=False)
+        # root.resizable(width=False, height=False)
 
         # create frames for screens
-        self.main_frame = tk.Frame(root, width=800, height=600, bg='#ffffff')
+        self.main_frame = tk.Frame(root, bg='#ffffff')
         self.button_frame = tk.Frame(
-            self.main_frame, width=250, height=200)
+            self.main_frame)
 
         # dynamic coordinates
         canvas_center_x = WIDTH / 2
@@ -59,9 +59,8 @@ class App:
         about_button.place(relx=0.5, rely=0.8, anchor=tk.CENTER)
 
         # label box
-        self.label = tk.Label(self.main_frame, text="This is a little blurb about the simulation", font=('Times', 14),
-                              fg="#000000")
-        self.label.place(x=canvas_center_x - 167, y=20, width=335, height=93)
+        self.label = tk.Label(self.main_frame, text="This is a little blurb about the simulation")
+        self.label.place(anchor=tk.CENTER, relx=0.5, rely=0.1)
 
         # show the initial screen
         self.show_screen(self.button_frame)
@@ -95,7 +94,7 @@ class App:
         start_screen_frame = tk.Frame(
             self.main_frame, width=800, height=600, bg='#ffffff')
         self.canvas = tk.Canvas(start_screen_frame, width=800,
-                           height=600, bg='gray')
+                           height=600)
         self.canvas.pack()
 
         update_button = tk.Button(self.canvas, text="Update", command=self.update_button_command,
@@ -111,7 +110,12 @@ class App:
             self.grid.append([])
             for x in range(GRID_WIDTH):
                 _x, _y = CELL_SIZE * (x + 1), CELL_SIZE * (y + 1)
-                self.grid[y].append(self.canvas.create_rectangle(_x, _y, _x + CELL_SIZE, _y + CELL_SIZE))
+                self.grid[y].append(self.canvas.create_rectangle(
+                    _x, _y, _x + CELL_SIZE,
+                    _y + CELL_SIZE,
+                    fill='',
+                    outline=''
+                ))
 
         self.show_screen(start_screen_frame)
         self.render()
