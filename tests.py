@@ -3,6 +3,7 @@ import unittest
 from main import *
 
 X, Y = 1, 2
+N_ORGANISMS = 100
 
 class TestOrganism(unittest.TestCase):
     organism = Organism(X, Y)
@@ -23,7 +24,7 @@ class TestOrganism(unittest.TestCase):
         self.assertEqual(self.organism.y, y)
 
 class TestWorld(unittest.TestCase):
-    world = World()
+    world = World(N_ORGANISMS)
 
     def test_init(self):
         self.assertEqual(self.world.frame, 0)
