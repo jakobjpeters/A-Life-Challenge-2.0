@@ -1,5 +1,5 @@
 from random import randint, choice, uniform, seed
-from math import ceil
+from math import ceil, copysign
 from enum import Enum, auto
 
 N_ORGANISMS = 100
@@ -120,13 +120,13 @@ class Genome:
 
     def set_phenotype(self, trait):
         """
-        Determines and sets the `trait` `self.phenotype` according to the traits value in `self.genotype`.
+        Determines and sets the `trait` `self.phenotype` according to the trait's value in `self.genotype`.
         """
         self.phenotype[trait] = trait(ceil(len(trait) * self.genotype[trait] / GENE_LENGTH))
 
     def set_genotype(self, trait):
         """
-        Determines and sets the `trait` `self.genotype` according to the traits value in `self.phenotype`.
+        Determines and sets the `trait` `self.genotype` according to the trait's value in `self.phenotype`.
         """
         self.genotype[trait] = ceil(GENE_LENGTH * self.phenotype[trait].value / len(trait))
 
@@ -173,13 +173,13 @@ class Organism():
         if self.genome.phenotype[EnergySource] == EnergySource.PHOTOSYNTHESIS:
             self.energy_level += self.photosynthesis_rate
 
-    def metabolize(self, x = 1):
+    def metabolize(self):
         """
         Adjust organism's energy level by a baseline metabolism rate. Metabolism
         is reduced by half when an organism is asleep.
         """
         if self.awake:
-            self.energy_level -= x * self.metabolism_rate
+            self.energy_level -= self.metabolism_rate
         else:
             self.energy_level -= 0.5 * self.metabolism_rate
 
@@ -354,7 +354,7 @@ class World():
         x, y = _organism.x + dx, _organism.y + dy
 
         self.remove_from_cell(_organism)
-        _organism.metabolize(dx + dy)
+        _organism.metabolize()
         _organism.update_location(x, y)
         self.insert_to_cell(_organism)
 
@@ -402,6 +402,11 @@ class World():
                     dx, dy = _x - _organism.x, _y - _organism.y
         else:
             dx, dy = x - _organism.x, y - _organism.y
+
+        if dx and abs(dx) > abs(dy):
+            dx, dy = int(copysign(1, dx)), 0
+        elif dy:
+            dx, dy = 0, int(copysign(1, dy))
 
         self.move_organism(_organism, dx, dy)
 
