@@ -1,19 +1,15 @@
 import textwrap
 
-from random import randint, choice, uniform, seed
+from random import randint, choice, uniform
 from math import ceil, copysign
 from enum import Enum, auto
 
-N_ORGANISMS = 100
 GRID_WIDTH = 20
 GRID_HEIGHT = 20
 STARTING_ENERGY_LEVEL = 10
 GENE_LENGTH = 50 # increasing GENE_LENGTH will make the odds of a mutation decrease
 EAT_ENERGY_RATE = 0.5
 VISIBLE_RANGE = 2
-
-seed(10)  # set to constant for reproducible simulations
-
 
 class Relationships(Enum):
     FRIENDLY = auto()
@@ -297,12 +293,12 @@ class World():
     sun = Sun()
     frame = 0
 
-    def __init__(self):
+    def __init__(self, n_organisms):
         """
         Instantiate a simulated environment and append each organism to its respective cell.
         """
         self.grid = [[[] for __ in range(GRID_WIDTH)] for _ in range(GRID_HEIGHT)]
-        self.organisms = [self.spawn_organism(randint(0, GRID_WIDTH - 1), randint(0, GRID_HEIGHT - 1)) for _ in range(N_ORGANISMS)]
+        self.organisms = [self.spawn_organism(randint(0, GRID_WIDTH - 1), randint(0, GRID_HEIGHT - 1)) for _ in range(n_organisms)]
 
     def spawn_organism(self, x, y):
         _organism = Organism(x, y)
