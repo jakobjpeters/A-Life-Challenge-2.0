@@ -66,6 +66,8 @@ class App:
         self.show_screen(self.button_frame)
 
         self.tracked_organism = None
+        self.paused = False
+        self.speed = 1.0
 
     def show_screen(self, screen_frame):
         # hide other screen and display selected one
@@ -98,9 +100,21 @@ class App:
         self.canvas = tk.Canvas(start_screen_frame, width=800,
                            height=600)
 
-        update_button = tk.Button(self.canvas, text="Update", command=self.update_button_command,
+        self.pause_button = tk.Button(self.canvas, text='Pause', command=self.toggle_pause,
                         width=30, height=2)
-        update_button.place(relx=0.8, rely=0.5, anchor=tk.CENTER)
+        self.pause_button.place(relx=0.8, rely=0.5, anchor=tk.CENTER)
+
+        self.faster_button = tk.Button(self.canvas, text='Faster', command=self.faster,
+                                       width=5, height=2)
+        self.faster_button.place(relx=0.7, rely=0.6, anchor=tk.CENTER)
+
+        self.slower_button = tk.Button(self.canvas, text='Slower', command=self.slower,
+                                       width=5, height=2)
+        self.slower_button.place(relx=0.8, rely=0.6, anchor=tk.CENTER)
+
+        self.slower_button = tk.Button(self.canvas, text='Reset', command=self.reset_speed,
+                                       width=5, height=2)
+        self.slower_button.place(relx=0.9, rely=0.6, anchor=tk.CENTER)
 
         self.organism_info_area = tk.Label(self.main_frame, justify=tk.LEFT, anchor='w', font='TkFixedFont', text='Hover over organism to view details')
         self.organism_info_area.place(anchor=tk.N, relx=0.9, rely=0.0, width=500, height=200)
@@ -126,20 +140,44 @@ class App:
 
         self.show_screen(start_screen_frame)
         self.render()
+        self.run()
 
-    def update_button_command(self):
+    def run(self):
         """
         When the `update` button is clicked, simulate the next frame in the simulation.
         When the simulation changes between day and night, change the color of the GUI to reflect that.
         """
-        self.world.update()
-        if self.tracked_organism:
-            self.organism_info_area.configure(text=str(self.tracked_organism))
-        if self.world.sun.is_day:
-            self.canvas.configure(bg='white')
+        if not self.paused:
+            self.world.update()
+            if self.tracked_organism:
+                self.organism_info_area.configure(text=str(self.tracked_organism))
+            if self.world.sun.is_day:
+                self.canvas.configure(bg='white')
+            else:
+                self.canvas.configure(bg='black')
+            self.render()
+
+        self.root.after(int(1000 * self.speed), self.run)
+
+    def faster(self):
+        """Double simulation speed."""
+        self.speed *= 0.5
+
+    def slower(self):
+        """Halve simulation speed."""
+        self.speed *= 2
+
+    def reset_speed(self):
+        """Set simulation speed back to default."""
+        self.speed = 1.0
+
+    def toggle_pause(self):
+        """Pause/resume simulation."""
+        self.paused = not self.paused
+        if self.paused:
+            self.pause_button.config(text='Resume')
         else:
-            self.canvas.configure(bg='black')
-        self.render()
+            self.pause_button.config(text='Pause')
 
     def load_button_command(self):
         print("Load button command")
@@ -224,6 +262,7 @@ class App:
             self.canvas.itemconfigure(self.grid[old_loc[1]][old_loc[0]], outline='')
             self.tracked_organism = None
 
+
 def darken_color(hex_color):
     """Darken hex color"""
     hex_color = hex_color.removeprefix('#')
@@ -241,7 +280,6 @@ if __name__ == "__main__":
     while True:
         root.update_idletasks()
         root.update()
-
         if False:
             counter += 1
             current = time.time()
