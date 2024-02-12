@@ -86,6 +86,7 @@ class App:
         """
         # FIXME: option to load / save worlds in GUI
         world_to_load = ''  # set None
+
         if world_to_load:
             with open('world.pkl', 'rb') as pkl:
                 self.world = pickle.load(pkl)
