@@ -1,6 +1,6 @@
 import textwrap
 
-from random import randint, choice, uniform
+from random import randint, choice
 from math import ceil, copysign
 from enum import Enum, auto
 
@@ -9,7 +9,7 @@ GRID_HEIGHT = 20
 STARTING_ENERGY_LEVEL = 10
 GENE_LENGTH = 50 # increasing GENE_LENGTH will make the odds of a mutation decrease
 EAT_ENERGY_RATE = 0.5
-VISIBLE_RANGE = 2
+VISIBLE_RANGE = 5
 
 class Relationships(Enum):
     FRIENDLY = auto()
@@ -443,33 +443,9 @@ class World():
 
         self.organisms = [_organism for _organism in self.organisms if _organism.alive]
 
-    def save(self):
-        """
-        Write the state of the simulation to a file, so that it can be resumed later.
-        """
-        pass
-
     def cell_content(self, x, y):
         "Accepts tuple integers x and y where y is the yth list and x is the xth position in the yth list."
         return self.grid[y][x]
-
-    def see(self, _organism):
-        vision = _organism.vision
-        start_point_x, start_point_y = _organism.x - vision, _organism.y - vision
-        field_of_view = {}
-        for x in range(vision):
-            for y in range(vision):
-                if start_point_x + x >= 0 and vision + y >= 0 and vision + x < GRID_WIDTH and y < GRID_HEIGHT:
-                    field_of_view[(start_point_x + x, start_point_y + y)] = self.cell_content(start_point_x + x, start_point_y + y)
-        return field_of_view
-
-    def decision_model(self, choices):
-        rand_gen = uniform(0, 1)
-        cummulative_prob = 0
-        for choice in choices.keys:
-            if cummulative_prob < rand_gen and rand_gen <= cummulative_prob + choices[choice]:
-                return rand_gen
-            cummulative_prob += choices[choice]
 
     def __str__(self):
         """
