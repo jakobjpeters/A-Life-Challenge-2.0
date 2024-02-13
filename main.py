@@ -115,8 +115,8 @@ class Genome:
         self.genotype, self.phenotype = genotype.copy(), phenotype.copy()
 
         for trait in TRAITS:
-            if trait.__name__ in genotype:
-                self.genotype[trait] = genotype[trait.__name__]
+            if trait in genotype:
+                self.genotype[trait] = genotype[trait]
                 self.set_phenotype(trait)
             elif trait in phenotype:
                 self.set_genotype(trait)
@@ -390,11 +390,9 @@ class World():
         # chance for a mutation to occur
         if randint(0, 100) < MUTATION_RATE:
             target_gene = choice(range(len(child_genotype)))
-            child_genotype[target_gene] = (
-                child_genotype[target_gene] + randint(-10, 10)) % MUTATION_RATE
+            child_genotype[target_gene] = min(max((child_genotype[target_gene] + randint(-10, 10)) % MUTATION_RATE, 1), GENE_LENGTH)
             print("MUTATION")
-        new_genotype = Genome(genotype={'Reproduction': child_genotype[0],
-                              'EnergySource': child_genotype[1], 'Skin': child_genotype[2], 'Movement': child_genotype[3], 'Sleep': child_genotype[4], 'Body': child_genotype[5]})
+        new_genotype = {trait: value for trait, value in zip(TRAITS, child_genotype)}
 
         # make a few attempts at creating offspring, if no nearby empty squares, no reprod occurs
         for i in range(0, 3):
@@ -403,9 +401,7 @@ class World():
             new_y = abs(randint(organism_1.y - 4,
                         organism_1.y + 4)) % GRID_WIDTH
             if len(self.grid[new_y][new_x]) == 0:
-                new_organism = self.spawn_organism(new_x, new_y)
-                new_organism.genome = new_genotype
-                self.organisms.append(new_organism)
+                self.spawn_organism(new_x, new_y, new_genotype)
                 print(
                     f'sexual reproduction occurred, total organisms: {len(self.organisms)}')
                 break
