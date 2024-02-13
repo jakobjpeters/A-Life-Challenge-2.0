@@ -1,6 +1,6 @@
 import textwrap
 
-from random import randint, choice
+from random import randint, choice, gauss
 from math import ceil, copysign
 from enum import Enum, auto
 
@@ -10,6 +10,7 @@ STARTING_ENERGY_LEVEL = 10
 GENE_LENGTH = 50 # increasing GENE_LENGTH will make the odds of a mutation decrease
 EAT_ENERGY_RATE = 0.5
 VISIBLE_RANGE = 5
+SIGMA = 1
 
 class Relationships(Enum):
     FRIENDLY = auto()
@@ -105,7 +106,7 @@ class Genome:
         Traits not in either parameter will generate a random value for its value in the `genotype`,
         which will determine its value in the `phenotype`.
         """
-        self.genotype, self.phenotype = {}, {}
+        self.genotype, self.phenotype = genotype.copy(), phenotype.copy()
 
         for trait in TRAITS:
             if trait in genotype:
@@ -150,11 +151,11 @@ class Organism():
     movement = 0
     vision = 0
 
-    def __init__(self, x, y):
+    def __init__(self, x, y, genotype = {}):
         """
         Instantiate an organism at the given `x` and `y` coordinates.
         """
-        self.genome = Genome()
+        self.genome = Genome(genotype=genotype)
         self.energy_level = choice((4, 5, 6))
         self.update_location(x, y)
         self.awake = True
@@ -293,18 +294,27 @@ class World():
     sun = Sun()
     frame = 0
 
-    def __init__(self, n_organisms):
+    def __init__(self, n_organisms, n_species):
         """
         Instantiate a simulated environment and append each organism to its respective cell.
         """
         self.grid = [[[] for __ in range(GRID_WIDTH)] for _ in range(GRID_HEIGHT)]
-        self.organisms = [self.spawn_organism(randint(0, GRID_WIDTH - 1), randint(0, GRID_HEIGHT - 1)) for _ in range(n_organisms)]
+        self.organisms = []
 
-    def spawn_organism(self, x, y):
-        _organism = Organism(x, y)
+        if not n_species:
+            n_species = n_organisms
+        species = [{trait: randint(1, GENE_LENGTH) for trait in TRAITS} for _ in range(n_species)]
+        for _ in range(n_organisms):
+            genotype = choice(species).copy()
+            for key in genotype:
+                genotype[key] = min(max(genotype[key] + round(gauss(sigma=SIGMA)), 1), GENE_LENGTH)
+            self.spawn_organism(randint(0, GRID_WIDTH - 1), randint(0, GRID_HEIGHT - 1), genotype)
+
+    def spawn_organism(self, x, y, genotype):
+        _organism = Organism(x, y, genotype)
+        self.organisms.append(_organism)
         self.insert_to_cell(_organism)
         _organism.awake = (_organism.genome.phenotype[Sleep] == Sleep.DIURNAL) == self.sun.is_day
-        return _organism
 
     def get_cell(self, _organism):
         """

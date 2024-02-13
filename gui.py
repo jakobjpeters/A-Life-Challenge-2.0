@@ -78,6 +78,13 @@ class App:
         self.seed_entry.insert(0, 0)
         self.seed_entry.pack()
 
+        species_label = tk.Label(self.new_frame, text="\nNumber of species", font=('Times', 14), fg="#000000")
+        species_label.pack()
+
+        self.species_slider = tk.Scale(self.new_frame, from_=0, to=10, orient='horizontal')
+        self.species_slider.set(5)
+        self.species_slider.pack()
+
         organisms_label = tk.Label(self.new_frame, text="\nNumber of organisms", font=('Times', 14), fg="#000000")
         organisms_label.pack()
 
@@ -106,7 +113,7 @@ class App:
             with open('world.pkl', 'rb') as pkl:
                 self.world = pickle.load(pkl)
         else:
-            self.world = World(n_organisms=self.organisms_slider.get())
+            self.world = World(n_organisms=self.organisms_slider.get(), n_species=self.species_slider.get())
             with open('world.pkl', 'wb') as pkl:
                 pickle.dump(self.world, pkl)
 
