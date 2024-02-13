@@ -1,20 +1,17 @@
 import textwrap
 
-from random import randint, choice, uniform, seed
+from random import randint, choice, gauss
 from math import ceil, copysign
 from enum import Enum, auto
 
-N_ORGANISMS = 100
 GRID_WIDTH = 20
 GRID_HEIGHT = 20
 STARTING_ENERGY_LEVEL = 10
 GENE_LENGTH = 50  # increasing GENE_LENGTH increases rate of phenotype change
 EAT_ENERGY_RATE = 0.5
-VISIBLE_RANGE = 2
+VISIBLE_RANGE = 5
+SIGMA = 1
 MUTATION_RATE = 50  # range from 0 to 100%
-
-seed(10)  # set to constant for reproducible simulations
-
 
 class Relationships(Enum):
     FRIENDLY = auto()
@@ -115,11 +112,11 @@ class Genome:
         Traits not in either parameter will generate a random value for its value in the `genotype`,
         which will determine its value in the `phenotype`.
         """
-        self.genotype, self.phenotype = {}, {}
+        self.genotype, self.phenotype = genotype.copy(), phenotype.copy()
 
         for trait in TRAITS:
-            if trait.__name__ in genotype:
-                self.genotype[trait] = genotype[trait.__name__]
+            if trait in genotype:
+                self.genotype[trait] = genotype[trait]
                 self.set_phenotype(trait)
             elif trait in phenotype:
                 self.set_genotype(trait)
@@ -164,11 +161,11 @@ class Organism():
     movement = 0
     vision = 0
 
-    def __init__(self, x, y):
+    def __init__(self, x, y, genotype = {}):
         """
         Instantiate an organism at the given `x` and `y` coordinates.
         """
-        self.genome = Genome()
+        self.genome = Genome(genotype=genotype)
         self.energy_level = choice((4, 5, 6))
         self.update_location(x, y)
         self.awake = True
@@ -314,21 +311,27 @@ class World():
     sun = Sun()
     frame = 0
 
-    def __init__(self):
+    def __init__(self, n_organisms, n_species):
         """
         Instantiate a simulated environment and append each organism to its respective cell.
         """
-        self.grid = [[[] for __ in range(GRID_WIDTH)]
-                     for _ in range(GRID_HEIGHT)]
-        self.organisms = [self.spawn_organism(randint(
-            0, GRID_WIDTH - 1), randint(0, GRID_HEIGHT - 1)) for _ in range(N_ORGANISMS)]
+        self.grid = [[[] for __ in range(GRID_WIDTH)] for _ in range(GRID_HEIGHT)]
+        self.organisms = []
 
-    def spawn_organism(self, x, y):
-        _organism = Organism(x, y)
+        if not n_species:
+            n_species = n_organisms
+        species = [{trait: randint(1, GENE_LENGTH) for trait in TRAITS} for _ in range(n_species)]
+        for _ in range(n_organisms):
+            genotype = choice(species).copy()
+            for key in genotype:
+                genotype[key] = min(max(genotype[key] + round(gauss(sigma=SIGMA)), 1), GENE_LENGTH)
+            self.spawn_organism(randint(0, GRID_WIDTH - 1), randint(0, GRID_HEIGHT - 1), genotype)
+
+    def spawn_organism(self, x, y, genotype):
+        _organism = Organism(x, y, genotype)
+        self.organisms.append(_organism)
         self.insert_to_cell(_organism)
-        _organism.awake = (
-            _organism.genome.phenotype[Sleep] == Sleep.DIURNAL) == self.sun.is_day
-        return _organism
+        _organism.awake = (_organism.genome.phenotype[Sleep] == Sleep.DIURNAL) == self.sun.is_day
 
     def get_cell(self, _organism):
         """
@@ -387,11 +390,9 @@ class World():
         # chance for a mutation to occur
         if randint(0, 100) < MUTATION_RATE:
             target_gene = choice(range(len(child_genotype)))
-            child_genotype[target_gene] = (
-                child_genotype[target_gene] + randint(-10, 10)) % MUTATION_RATE
+            child_genotype[target_gene] = min(max((child_genotype[target_gene] + randint(-10, 10)) % MUTATION_RATE, 1), GENE_LENGTH)
             print("MUTATION")
-        new_genotype = Genome(genotype={'Reproduction': child_genotype[0],
-                              'EnergySource': child_genotype[1], 'Skin': child_genotype[2], 'Movement': child_genotype[3], 'Sleep': child_genotype[4], 'Body': child_genotype[5]})
+        new_genotype = {trait: value for trait, value in zip(TRAITS, child_genotype)}
 
         # make a few attempts at creating offspring, if no nearby empty squares, no reprod occurs
         for i in range(0, 3):
@@ -400,9 +401,7 @@ class World():
             new_y = abs(randint(organism_1.y - 4,
                         organism_1.y + 4)) % GRID_WIDTH
             if len(self.grid[new_y][new_x]) == 0:
-                new_organism = self.spawn_organism(new_x, new_y)
-                new_organism.genome = new_genotype
-                self.organisms.append(new_organism)
+                self.spawn_organism(new_x, new_y, new_genotype)
                 print(
                     f'sexual reproduction occurred, total organisms: {len(self.organisms)}')
                 break
@@ -505,34 +504,9 @@ class World():
         self.organisms = [
             _organism for _organism in self.organisms if _organism.alive]
 
-    def save(self):
-        """
-        Write the state of the simulation to a file, so that it can be resumed later.
-        """
-        pass
-
     def cell_content(self, x, y):
         "Accepts tuple integers x and y where y is the yth list and x is the xth position in the yth list."
         return self.grid[y][x]
-
-    def see(self, _organism):
-        vision = _organism.vision
-        start_point_x, start_point_y = _organism.x - vision, _organism.y - vision
-        field_of_view = {}
-        for x in range(vision):
-            for y in range(vision):
-                if start_point_x + x >= 0 and vision + y >= 0 and vision + x < GRID_WIDTH and y < GRID_HEIGHT:
-                    field_of_view[(start_point_x + x, start_point_y + y)
-                                  ] = self.cell_content(start_point_x + x, start_point_y + y)
-        return field_of_view
-
-    def decision_model(self, choices):
-        rand_gen = uniform(0, 1)
-        cummulative_prob = 0
-        for choice in choices.keys:
-            if cummulative_prob < rand_gen and rand_gen <= cummulative_prob + choices[choice]:
-                return rand_gen
-            cummulative_prob += choices[choice]
 
     def __str__(self):
         """

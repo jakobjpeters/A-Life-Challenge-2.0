@@ -1,8 +1,8 @@
-import os
+from random import seed
 import pickle
 import tkinter as tk
 import time
-from main import World, GRID_HEIGHT, GRID_WIDTH, Body
+from main import GRID_HEIGHT, GRID_WIDTH, World, Body
 
 WIDTH = 800
 HEIGHT = 600
@@ -21,7 +21,7 @@ class App:
 
     def __init__(self, root):
         self.root = root
-        root.title("A-Life Challenge")
+        root.title("A-Life Challenge 2.0")
 
         # window size
         screenwidth = root.winfo_screenwidth()
@@ -29,16 +29,11 @@ class App:
         alignstr = '%dx%d+%d+%d' % (WIDTH, HEIGHT,
                                     (screenwidth - WIDTH) / 2, (screenheight - HEIGHT) / 2)
         root.geometry(alignstr)
-        # root.resizable(width=False, height=False)
 
         # create frames for screens
         self.main_frame = tk.Frame(root, bg='#ffffff')
         self.button_frame = tk.Frame(
             self.main_frame)
-
-        # dynamic coordinates
-        canvas_center_x = WIDTH / 2
-        canvas_center_y = HEIGHT / 2
 
         # canvas for buttons
         button_canvas = tk.Canvas(
@@ -46,9 +41,9 @@ class App:
         button_canvas.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
         # buttons on the button canvas
-        start_button = tk.Button(button_canvas, text="Start", command=self.start_button_command,
+        new_button = tk.Button(button_canvas, text="Start", command=self.new_button_command,
                                  width=30, height=2)
-        start_button.place(relx=0.5, rely=0.2, anchor=tk.CENTER)
+        new_button.place(relx=0.5, rely=0.2, anchor=tk.CENTER)
 
         load_button = tk.Button(button_canvas, text="Load", command=self.load_button_command,
                                 width=30, height=2)
@@ -62,19 +57,45 @@ class App:
         self.label = tk.Label(self.main_frame, text="This is a little blurb about the simulation")
         self.label.place(anchor=tk.CENTER, relx=0.5, rely=0.1)
 
-        # show the initial screen
-        self.show_screen(self.button_frame)
-
         self.tracked_organism = None
         self.paused = False
         self.speed = 1.0
 
-    def show_screen(self, screen_frame):
-        # hide other screen and display selected one
-        self.button_frame.pack_forget()
-        self.main_frame.pack_forget()
-        screen_frame.pack(fill=tk.BOTH, expand=True)
         self.main_frame.pack(fill=tk.BOTH, expand=True)
+        self.button_frame.pack(fill=tk.BOTH, expand=True)
+
+    def new_button_command(self):
+        self.label.place_forget()
+        self.button_frame.pack_forget()
+
+        self.new_frame = tk.Frame(self.main_frame, bg='#3E3E3E')
+        self.new_frame.pack(fill=tk.BOTH, expand=True)
+
+        seed_label = tk.Label(self.new_frame, text="\nRandom seed", font=('Times', 14), fg="#000000")
+        seed_label.pack()
+
+        self.seed_entry = tk.Entry(self.new_frame, validate='all', validatecommand=(self.new_frame.register(lambda s: str.isdigit(s) or s == ''), '%P'))
+        self.seed_entry.insert(0, 0)
+        self.seed_entry.pack()
+
+        species_label = tk.Label(self.new_frame, text="\nNumber of species", font=('Times', 14), fg="#000000")
+        species_label.pack()
+
+        self.species_slider = tk.Scale(self.new_frame, from_=0, to=10, orient='horizontal')
+        self.species_slider.set(5)
+        self.species_slider.pack()
+
+        organisms_label = tk.Label(self.new_frame, text="\nNumber of organisms", font=('Times', 14), fg="#000000")
+        organisms_label.pack()
+
+        self.organisms_slider = tk.Scale(self.new_frame, from_=0, to=100, orient='horizontal')
+        self.organisms_slider.set(50)
+        self.organisms_slider.pack()
+
+        start_button = tk.Button(self.new_frame, text="Start", command=self.start_button_command,
+                            width=30, height=2, bg="#5189f0", fg="#FFFFFF", activebackground="#5C89f0")
+        start_button.pack()
+
 
 
     def start_button_command(self):
@@ -84,21 +105,20 @@ class App:
         The right side of the screen contains a button to calculate the next frame and
         will display other information about the simulation.
         """
+        seed(self.seed_entry.get())
+
         # FIXME: option to load / save worlds in GUI
         world_to_load = ''  # set None
-
         if world_to_load:
             with open('world.pkl', 'rb') as pkl:
                 self.world = pickle.load(pkl)
         else:
-            self.world = World()
+            self.world = World(n_organisms=self.organisms_slider.get(), n_species=self.species_slider.get())
             with open('world.pkl', 'wb') as pkl:
                 pickle.dump(self.world, pkl)
 
         # new frame for after pushing the start button
-        start_screen_frame = tk.Frame(
-            self.main_frame, width=800, height=600, bg='#ffffff')
-        self.canvas = tk.Canvas(start_screen_frame, width=800,
+        self.canvas = tk.Canvas(self.main_frame, width=800,
                            height=600)
 
         self.pause_button = tk.Button(self.canvas, text='Pause', command=self.toggle_pause,
@@ -130,7 +150,7 @@ class App:
                     _x, _y, _x + CELL_SIZE,
                     _y + CELL_SIZE,
                     fill='',
-                    outline='',                    
+                    outline='',
                 )
                 self.grid[y].append(rect)
 
@@ -139,7 +159,9 @@ class App:
                 self.canvas.tag_bind(rect, '<Button-1>', lambda _, x=x, y=y: self.view_organism_details(x, y, clicked=True))
                 self.canvas.tag_bind(rect, '<Leave>', lambda _: self.clear_organism_details())
 
-        self.show_screen(start_screen_frame)
+
+        self.new_frame.pack_forget()
+        self.canvas.pack()
         self.render()
         self.run()
 
