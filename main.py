@@ -324,7 +324,7 @@ class World():
         for _ in range(n_organisms):
             genotype = choice(species).copy()
             for key in genotype:
-                genotype[key] = min(max(genotype[key] + round(gauss(sigma=SIGMA)), 1), GENE_LENGTH)
+                genotype[key] = ((genotype[key] + round(gauss(sigma=SIGMA))) % GENE_LENGTH) + 1
             self.spawn_organism(randint(0, GRID_WIDTH - 1), randint(0, GRID_HEIGHT - 1), genotype)
 
     def spawn_organism(self, x, y, genotype):
@@ -390,7 +390,7 @@ class World():
         # chance for a mutation to occur
         if randint(0, 100) < MUTATION_RATE:
             target_gene = choice(range(len(child_genotype)))
-            child_genotype[target_gene] = min(max((child_genotype[target_gene] + randint(-10, 10)) % MUTATION_RATE, 1), GENE_LENGTH)
+            child_genotype[target_gene] = ((child_genotype[target_gene] + randint(-10, 10)) % MUTATION_RATE) + 1
             print("MUTATION")
         new_genotype = {trait: value for trait, value in zip(TRAITS, child_genotype)}
 
@@ -492,7 +492,7 @@ class World():
             if _organism.alive:
                 if is_twighlight:
                     _organism.awake = not _organism.awake
-                if _organism.awake:
+                if _organism.awake and _organism.genome.phenotype[Movement] is not Movement.STATIONARY:
                     self.pathfind(_organism)
                 if self.sun.is_day:
                     _organism.photosynthesize()
