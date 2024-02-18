@@ -96,8 +96,6 @@ class App:
                             width=30, height=2, bg="#5189f0", fg="#FFFFFF", activebackground="#5C89f0")
         start_button.pack()
 
-
-
     def start_button_command(self):
         """
         Starts the simulation by instantiating a new `World`.
@@ -105,7 +103,6 @@ class App:
         The right side of the screen contains a button to calculate the next frame and
         will display other information about the simulation.
         """
-        seed(self.seed_entry.get())
 
         # FIXME: option to load / save worlds in GUI
         world_to_load = ''  # set None
@@ -116,10 +113,92 @@ class App:
             self.world = World(n_organisms=self.organisms_slider.get(), n_species=self.species_slider.get())
             with open('world.pkl', 'wb') as pkl:
                 pickle.dump(self.world, pkl)
+    
+        self.main_frame.pack_forget()
+        m1 = tk.PanedWindow(bg='slategray', relief='raised')
+        m1.pack(fill=tk.BOTH, expand=1)
 
-        # new frame for after pushing the start button
-        self.canvas = tk.Canvas(self.main_frame, width=1200, height=600)
-        self.canvas.pack(fill=tk.BOTH, expand=True)
+        left_frame = tk.Frame(m1)
+
+        self.pause_button = tk.Button(
+            left_frame,
+            text='Pause',
+            command=self.toggle_pause,
+            width=30, height=2)
+        self.pause_button.pack()
+
+        m1.add(left_frame)
+
+        zoom_button_row = tk.Frame(left_frame, width=5, height=2)
+        tk.Label(zoom_button_row, text='Zoom:', width=5).pack(side=tk.LEFT)
+
+        zoom_in_button = tk.Button(
+            zoom_button_row,
+            text="Zoom in",
+            command=lambda: self.zoom_canvas(1.2),
+            width=5,
+            height=2
+        )
+        zoom_in_button.pack(side=tk.LEFT)
+        zoom_out_button = tk.Button(
+            zoom_button_row,
+            text="Zoom out",
+            command=lambda: self.zoom_canvas(0.8),
+            width=5,
+            height=2
+        )
+        zoom_out_button.pack(side=tk.LEFT)
+        reset_view_button = tk.Button(
+            zoom_button_row,
+            text='Reset',
+            command=self.reset_view,
+            width=5,
+            height=2
+        )
+        reset_view_button.pack(side=tk.LEFT)
+        zoom_button_row.pack()
+
+        speed_button_row = tk.Frame(left_frame, width=5, height=2)
+        tk.Label(speed_button_row, text='Speed:', width=5).pack(side=tk.LEFT)
+
+        faster_button = tk.Button(
+            speed_button_row,
+            text='Faster',
+            command=self.faster,
+            width=5,
+            height=2
+        )
+        faster_button.pack(side=tk.LEFT)
+        slower_button = tk.Button(
+            speed_button_row,
+            text='Slower',
+            command=self.slower,
+            width=5,
+            height=2
+        )
+        slower_button.pack(side=tk.LEFT)
+        reset_button = tk.Button(speed_button_row,
+            text='Reset',
+            command=self.reset_speed,
+            width=5,
+            height=2
+        )
+        reset_button.pack(side=tk.LEFT)
+        speed_button_row.pack()
+
+        self.organism_info_area = tk.Label(
+            left_frame,
+            justify=tk.LEFT,
+            anchor='e',
+            font='TkFixedFont',
+            text='Hover over organism to view details'
+        )
+        self.organism_info_area.pack()
+
+        m2 = tk.PanedWindow(m1, orient=tk.VERTICAL, bg='slategray')
+        m1.add(m2)
+
+        self.canvas = tk.Canvas(m2, width=400, height=400)
 
         self.original_scale_factor = 1.0
         self.canvas.bind('<ButtonPress-1>', lambda event: self.canvas.scan_mark(event.x, event.y))
@@ -127,52 +206,8 @@ class App:
         self.canvas_original_x = self.canvas.xview()[0]
         self.canvas_original_y = self.canvas.yview()[0]
 
-        self.pause_button = tk.Button(self.canvas, text='Pause', command=self.toggle_pause,
-                        width=30, height=2)
-        self.pause_button.place(relx=0.8, rely=0.5, anchor=tk.CENTER)
 
-
-        self.zoom_in_button = tk.Button(
-            self.canvas,
-            text="Zoom in",
-            command=lambda: self.zoom_canvas(1.2),
-            width=5,
-            height=2
-        )
-        self.zoom_in_button.place(relx=0.7, rely=0.6, anchor=tk.CENTER)
-        self.zoom_out_button = tk.Button(
-            self.canvas,
-            text="Zoom out",
-            command=lambda: self.zoom_canvas(0.8),
-            width=5,
-            height=2
-        )
-        self.zoom_out_button.place(relx=0.8, rely=0.6, anchor=tk.CENTER)
-        self.reset_view_button = tk.Button(
-            self.canvas,
-            text='Reset view',
-            command=self.reset_view,
-            width=5,
-            height=2
-        )
-        self.reset_view_button.place(relx=0.9, rely=0.6, anchor=tk.CENTER)
-
-
-        self.faster_button = tk.Button(self.canvas, text='Faster', command=self.faster,
-                                       width=5, height=2)
-        self.faster_button.place(relx=0.7, rely=0.7, anchor=tk.CENTER)
-
-        self.slower_button = tk.Button(self.canvas, text='Slower', command=self.slower,
-                                       width=5, height=2)
-        self.slower_button.place(relx=0.8, rely=0.7, anchor=tk.CENTER)
-
-        self.slower_button = tk.Button(self.canvas, text='Normal', command=self.reset_speed,
-                                       width=5, height=2)
-        self.slower_button.place(relx=0.9, rely=0.7, anchor=tk.CENTER)
-
-        self.organism_info_area = tk.Label(self.main_frame, justify=tk.LEFT, anchor='w', font='TkFixedFont', text='Hover over organism to view details')
-        self.organism_info_area.place(anchor=tk.N, relx=0.9, rely=0.0, width=500, height=200)
-        self.canvas.pack()
+        m2.add(self.canvas)
 
         self.grid = []
         for y in range(GRID_HEIGHT):
@@ -193,9 +228,8 @@ class App:
                 self.canvas.tag_bind(rect, '<Button-1>', lambda _, x=x, y=y: self.view_organism_details(x, y, clicked=True))
                 self.canvas.tag_bind(rect, '<Leave>', lambda _: self.clear_organism_details())
 
-
-        self.new_frame.pack_forget()
-        self.canvas.pack()
+        bottom = tk.Label(m2, text="bottom pane")
+        m2.add(bottom)
         self.render()
         self.run()
     

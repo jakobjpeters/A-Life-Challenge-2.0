@@ -4,8 +4,8 @@ from random import randint, choice, gauss
 from math import ceil, copysign
 from enum import Enum, auto
 
-GRID_WIDTH = 40
-GRID_HEIGHT = 40
+GRID_WIDTH = 30
+GRID_HEIGHT = 30
 STARTING_ENERGY_LEVEL = 10
 GENE_LENGTH = 50  # increasing GENE_LENGTH increases rate of phenotype change
 EAT_ENERGY_RATE = 0.5
@@ -270,7 +270,7 @@ class Organism():
         attributes += f'Organism {self.__repr__()}{" (dead)" if not self.alive else ""}:\n'
         attributes += f'  awake:         {self.awake}\n'
         attributes += f'  position:      x: {self.x}, y: {self.y}\n'
-        attributes += f'  energy_level:  {self.energy_level}\n'
+        attributes += f'  energy_level:  {self.energy_level:.1f}\n'
         attributes += f'  genome:\n'
         attributes += f'{textwrap.indent(str(self.genome), "    ")}'
         return attributes
