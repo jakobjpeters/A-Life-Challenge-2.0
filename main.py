@@ -3,9 +3,10 @@ import textwrap
 from random import randint, choice, gauss
 from math import ceil, copysign
 from enum import Enum, auto
+from species import Species
 
-GRID_WIDTH = 20
-GRID_HEIGHT = 20
+GRID_WIDTH = 50
+GRID_HEIGHT = 50
 STARTING_ENERGY_LEVEL = 10
 GENE_LENGTH = 50  # increasing GENE_LENGTH increases rate of phenotype change
 EAT_ENERGY_RATE = 0.5
@@ -155,7 +156,7 @@ class Organism():
     The `x` and `y` attributes indicate its position in the environment.
     An organism dies when its `energy_level` is less than or equal to `0`.
     """
-    photosynthesis_rate = 1.1  # energy_levels / frame during day
+    photosynthesis_rate = 2.5  # energy_levels / frame during day
     metabolism_rate = 1  # make this a function of "size"?
     troph_type = 'p'  # h, c, o
     movement = 0
@@ -327,6 +328,8 @@ class World():
                 genotype[key] = ((genotype[key] + round(gauss(sigma=SIGMA))) % GENE_LENGTH) + 1
             self.spawn_organism(randint(0, GRID_WIDTH - 1), randint(0, GRID_HEIGHT - 1), genotype)
 
+        self.species = Species(self.organisms)
+
     def spawn_organism(self, x, y, genotype):
         _organism = Organism(x, y, genotype)
         self.organisms.append(_organism)
@@ -391,7 +394,6 @@ class World():
         if randint(0, 100) < MUTATION_RATE:
             target_gene = choice(range(len(child_genotype)))
             child_genotype[target_gene] = ((child_genotype[target_gene] + randint(-10, 10)) % MUTATION_RATE) + 1
-            print("MUTATION")
         new_genotype = {trait: value for trait, value in zip(TRAITS, child_genotype)}
 
         # make a few attempts at creating offspring, if no nearby empty squares, no reprod occurs
@@ -402,8 +404,6 @@ class World():
                         organism_1.y + 4)) % GRID_WIDTH
             if len(self.grid[new_y][new_x]) == 0:
                 self.spawn_organism(new_x, new_y, new_genotype)
-                print(
-                    f'sexual reproduction occurred, total organisms: {len(self.organisms)}')
                 break
 
     def move_organism(self, _organism, dx, dy):
@@ -503,6 +503,9 @@ class World():
 
         self.organisms = [
             _organism for _organism in self.organisms if _organism.alive]
+
+        if self.organisms:
+            self.species.cluster(self.organisms)
 
     def cell_content(self, x, y):
         "Accepts tuple integers x and y where y is the yth list and x is the xth position in the yth list."

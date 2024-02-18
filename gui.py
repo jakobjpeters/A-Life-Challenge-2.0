@@ -6,7 +6,7 @@ from main import GRID_HEIGHT, GRID_WIDTH, World, Body
 
 WIDTH = 800
 HEIGHT = 600
-CELL_SIZE = 20
+CELL_SIZE = 8
 FPS_REFRESH_RATE = 1 # second
 CELL_COLOR = '#2f2f2f'
 BODY_COLORS = {body: color for body, color in zip(Body, (
@@ -81,15 +81,15 @@ class App:
         species_label = tk.Label(self.new_frame, text="\nNumber of species", font=('Times', 14), fg="#000000")
         species_label.pack()
 
-        self.species_slider = tk.Scale(self.new_frame, from_=0, to=10, orient='horizontal')
-        self.species_slider.set(5)
+        self.species_slider = tk.Scale(self.new_frame, from_=0, to=20, orient='horizontal')
+        self.species_slider.set(10)
         self.species_slider.pack()
 
         organisms_label = tk.Label(self.new_frame, text="\nNumber of organisms", font=('Times', 14), fg="#000000")
         organisms_label.pack()
 
-        self.organisms_slider = tk.Scale(self.new_frame, from_=0, to=100, orient='horizontal')
-        self.organisms_slider.set(50)
+        self.organisms_slider = tk.Scale(self.new_frame, from_=0, to=400, orient='horizontal')
+        self.organisms_slider.set(200)
         self.organisms_slider.pack()
 
         start_button = tk.Button(self.new_frame, text="Start", command=self.start_button_command,
@@ -229,18 +229,14 @@ class App:
         """
         for x in range(GRID_WIDTH):
             for y in range(GRID_HEIGHT):
-                cell = self.world.grid[y][x]
-                if cell:
-                    organism = cell[0]
-                    color = BODY_COLORS[organism.genome.phenotype[Body]]
-                    if organism.awake:
-                        self.color_cell(x, y, color)
-                    else:
-                        self.color_cell(x, y, darken_color(color))
-                    if organism is self.tracked_organism:
-                        self.highlight_cell(x, y)
-                else:
-                    self.color_cell(x, y, CELL_COLOR)
+                self.color_cell(x, y, CELL_COLOR)
+
+        species = self.world.species
+        for organism, label in zip(self.world.organisms, species.labels):
+            x, y = organism.get_location()
+            self.color_cell(x, y, "#%02x%02x%02x" % tuple([int(255 * color) for color in species.labels_colors[label]]))
+            if organism is self.tracked_organism:
+                self.highlight_cell(x, y)
 
     def view_organism_details(self, x, y, clicked=False):
         """
