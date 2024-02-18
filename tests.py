@@ -7,10 +7,10 @@ N_ORGANISMS = 100
 N_SPECIES = 10
 
 class TestOrganism(unittest.TestCase):
-    organism = Organism(X, Y)
+    organism = Organism(X, Y, STARTING_ENERGY_RATE)
 
     def test_init(self):
-        organism = Organism(X, Y)
+        organism = Organism(X, Y, STARTING_ENERGY_RATE)
         self.assertEqual(organism.x, X)
         self.assertEqual(organism.y, Y)
 
@@ -34,21 +34,16 @@ class TestWorld(unittest.TestCase):
         for row in self.world.grid:
             self.assertTrue(len(row) == GRID_WIDTH)
 
-    def test_get_cell(self):
-        for organism in self.world.organisms:
-            self.assertIn(organism, self.world.get_cell(organism))
-
     def test_insert_to_cell(self):
-        organism = Organism(X, Y)
-        cell = self.world.get_cell(organism)
-        self.assertNotIn(organism, cell)
+        organism = Organism(X, Y, STARTING_ENERGY_RATE)
+        self.assertNotEqual(organism, self.world.cell_content(X, Y))
         self.world.insert_to_cell(organism)
-        self.assertIn(organism, cell)
+        self.assertEqual(organism, self.world.cell_content(X, Y))
 
     def test_remove_from_cell(self):
         organism = self.world.organisms[0]
         self.world.remove_from_cell(organism)
-        self.assertNotIn(organism, self.world.get_cell(organism))
+        self.assertNotEqual(organism, self.world.cell_content(X, Y))
         self.world.insert_to_cell(organism)
 
     def test_update(self):
@@ -58,8 +53,8 @@ class TestWorld(unittest.TestCase):
 
 class TestMeet(unittest.TestCase):
     def setUp(self):
-        self.organism_1 = Organism(0, 0)
-        self.organism_2 = Organism(0, 0)
+        self.organism_1 = Organism(0, 0, STARTING_ENERGY_RATE)
+        self.organism_2 = Organism(0, 0, STARTING_ENERGY_RATE)
 
         # Different skin options to make different 'species' by default
         self.organism_1.genome.phenotype[Skin] = Skin.FUR
@@ -67,59 +62,59 @@ class TestMeet(unittest.TestCase):
 
     def test_herbivore_eats_smaller_plant(self):
         self.organism_1.genome.phenotype[EnergySource] = EnergySource.HERBIVORE
-        self.organism_1.energy_level = 2
+        self.organism_1.genome.phenotype[Size] = Size.TWO
         self.organism_2.genome.phenotype[EnergySource] = EnergySource.PHOTOSYNTHESIS
-        self.organism_2.energy_level = 1
+        self.organism_2.genome.phenotype[Size] = Size.ONE
         relationship = self.organism_1.meet(self.organism_2)
         self.assertEqual(relationship, Relationships.PREY)
 
     def test_smaller_plant_eaten_by_herbivore(self):
         self.organism_1.genome.phenotype[EnergySource] = EnergySource.PHOTOSYNTHESIS
         self.organism_2.genome.phenotype[EnergySource] = EnergySource.HERBIVORE
-        self.organism_1.energy_level = 1
-        self.organism_2.energy_level = 2
+        self.organism_1.genome.phenotype[Size] = Size.ONE
+        self.organism_2.genome.phenotype[Size] = Size.TWO
         relationship = self.organism_1.meet(self.organism_2)
         self.assertEqual(relationship, Relationships.PREDATOR)
 
     def test_herbivore_cannot_eat_larger_plant(self):
         self.organism_1.genome.phenotype[EnergySource] = EnergySource.HERBIVORE
         self.organism_2.genome.phenotype[EnergySource] = EnergySource.PHOTOSYNTHESIS
-        self.organism_1.energy_level = 1
-        self.organism_2.energy_level = 2
+        self.organism_1.genome.phenotype[Size] = Size.ONE
+        self.organism_2.genome.phenotype[Size] = Size.TWO
         relationship = self.organism_1.meet(self.organism_2)
-        self.assertEqual(relationship, Relationships.FRIENDLY)
+        self.assertEqual(relationship, Relationships.NEUTRAL)
 
     def test_omnivore_eats_smaller_carnivore(self):
         self.organism_1.genome.phenotype[EnergySource] = EnergySource.OMNIVORE
         self.organism_2.genome.phenotype[EnergySource] = EnergySource.CARNIVORE
-        self.organism_1.energy_level = 2
-        self.organism_2.energy_level = 1
+        self.organism_1.genome.phenotype[Size] = Size.TWO
+        self.organism_2.genome.phenotype[Size] = Size.ONE
         relationship = self.organism_1.meet(self.organism_2)
         self.assertEqual(relationship, Relationships.PREY)
 
     def test_equal_omnivore_carnivore_do_not_eat(self):
         self.organism_1.genome.phenotype[EnergySource] = EnergySource.OMNIVORE
         self.organism_2.genome.phenotype[EnergySource] = EnergySource.CARNIVORE
-        self.organism_1.energy_level = 2
-        self.organism_2.energy_level = 2
+        self.organism_1.genome.phenotype[Size] = Size.ONE
+        self.organism_2.genome.phenotype[Size] = Size.ONE
         relationship = self.organism_1.meet(self.organism_2)
-        self.assertEqual(relationship, Relationships.FRIENDLY)
+        self.assertEqual(relationship, Relationships.NEUTRAL)
 
     def test_larger_omnivore_eats_smaller_omnivore(self):
         self.organism_1.genome.phenotype[EnergySource] = EnergySource.OMNIVORE
         self.organism_2.genome.phenotype[EnergySource] = EnergySource.OMNIVORE
-        self.organism_1.energy_level = 2
-        self.organism_2.energy_level = 1
+        self.organism_1.genome.phenotype[Size] = Size.TWO
+        self.organism_2.genome.phenotype[Size] = Size.ONE
         relationship = self.organism_1.meet(self.organism_2)
         self.assertEqual(relationship, Relationships.PREY)
 
     def test_no_cannibalism(self):
         self.organism_1.genome.phenotype[EnergySource] = EnergySource.OMNIVORE
         self.organism_1.genome.phenotype = self.organism_2.genome.phenotype
-        self.organism_1.energy_level = 2
-        self.organism_2.energy_level = 1
+        self.organism_1.genome.phenotype[Size] = Size.TWO
+        self.organism_2.genome.phenotype[Size] = Size.ONE
         relationship = self.organism_1.meet(self.organism_2)
-        self.assertEqual(relationship, Relationships.FRIENDLY)
+        self.assertEqual(relationship, Relationships.NEUTRAL)
 
 
 if __name__ == '__main__':
