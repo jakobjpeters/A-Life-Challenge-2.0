@@ -96,10 +96,13 @@ class App:
     def start_button_command(self):
         """
         Starts the simulation by instantiating a new `World`.
-        The left side of the simulation displays the simulated environment.
-        The right side of the screen contains a button to calculate the next frame and
-        will display other information about the simulation.
+        
+        The left side of the window displays simulation controls and information
+        about individual organisms. The right side of the window shows a visual
+        representation of the simulation and general information about the
+        current state.
         """
+        seed(self.seed_entry.get())
 
         # FIXME: option to load / save worlds in GUI
         world_to_load = ''  # set None
@@ -111,11 +114,61 @@ class App:
             with open('world.pkl', 'wb') as pkl:
                 pickle.dump(self.world, pkl)
     
+        # Set up simulation windows
         self.main_frame.pack_forget()
-        m1 = tk.PanedWindow(bg='slategray', relief='raised')
-        m1.pack(fill=tk.BOTH, expand=1)
+        window = self.set_up_left_panel()
+        window.pack(fill=tk.BOTH, expand=1)
+        subwindow = tk.PanedWindow(window, orient=tk.VERTICAL, bg='slategray')
+        window.add(subwindow)
+        self.canvas = tk.Canvas(subwindow, width=400, height=400)
+        self.set_up_canvas()
+        subwindow.add(self.canvas)
+        bottom = tk.Label(subwindow, text="bottom pane")
+        subwindow.add(bottom)
 
-        left_frame = tk.Frame(m1)
+        # Display and run simulation
+        self.render()
+        self.run_after_delay()
+
+    def run_after_delay(self):
+        self.root.after(int(1000 * self.speed), self.run)
+
+    def set_up_canvas(self):
+        """
+        Set up self.canvas creating a view of the World and its Organisms.
+        """
+        self.original_scale_factor = 1.0
+        self.canvas.bind('<ButtonPress-1>', lambda event: self.canvas.scan_mark(event.x, event.y))
+        self.canvas.bind("<B1-Motion>", lambda event: self.canvas.scan_dragto(event.x, event.y, gain=1))
+        self.canvas_original_x = self.canvas.xview()[0]
+        self.canvas_original_y = self.canvas.yview()[0]
+
+        self.grid = []
+        for y in range(GRID_HEIGHT):
+            self.grid.append([])
+            for x in range(GRID_WIDTH):
+                cell_size = 400 / GRID_WIDTH
+                _x, _y = cell_size * (x + 1), cell_size * (y + 1)
+                rect = self.canvas.create_rectangle(
+                    _x, _y, _x + cell_size,
+                    _y + cell_size,
+                    fill='',
+                    outline='',
+                )
+                self.grid[y].append(rect)
+
+                # attach callback functions to cell when its clicked or hovered
+                self.canvas.tag_bind(rect, '<Enter>', lambda _, x=x, y=y: self.view_organism_details(x, y))
+                self.canvas.tag_bind(rect, '<Button-1>', lambda _, x=x, y=y: self.view_organism_details(x, y, clicked=True))
+                self.canvas.tag_bind(rect, '<Leave>', lambda _: self.clear_organism_details())
+
+
+    def set_up_left_panel(self):
+        """
+        Setup left panel containing control buttons and Organism info.
+        """
+        window = tk.PanedWindow(bg='slategray', relief='raised')
+        left_frame = tk.Frame(window)
 
         self.pause_button = tk.Button(
             left_frame,
@@ -124,7 +177,7 @@ class App:
             width=30, height=2)
         self.pause_button.pack()
 
-        m1.add(left_frame)
+        window.add(left_frame)
 
         zoom_button_row = tk.Frame(left_frame, width=5, height=2)
         tk.Label(zoom_button_row, text='Zoom:', width=5).pack(side=tk.LEFT)
@@ -191,53 +244,19 @@ class App:
             text='Hover over organism to view details'
         )
         self.organism_info_area.pack()
-
-        m2 = tk.PanedWindow(m1, orient=tk.VERTICAL, bg='slategray')
-        m1.add(m2)
-
-        self.canvas = tk.Canvas(m2, width=400, height=400)
-
-        self.original_scale_factor = 1.0
-        self.canvas.bind('<ButtonPress-1>', lambda event: self.canvas.scan_mark(event.x, event.y))
-        self.canvas.bind("<B1-Motion>", lambda event: self.canvas.scan_dragto(event.x, event.y, gain=1))
-        self.canvas_original_x = self.canvas.xview()[0]
-        self.canvas_original_y = self.canvas.yview()[0]
-
-
-        m2.add(self.canvas)
-
-        self.grid = []
-        for y in range(GRID_HEIGHT):
-            self.grid.append([])
-            for x in range(GRID_WIDTH):
-                cell_size = 400 / GRID_WIDTH
-                _x, _y = cell_size * (x + 1), cell_size * (y + 1)
-                rect = self.canvas.create_rectangle(
-                    _x, _y, _x + cell_size,
-                    _y + cell_size,
-                    fill='',
-                    outline='',
-                )
-                self.grid[y].append(rect)
-
-                # attach callback functions to cell when its clicked or hovered
-                self.canvas.tag_bind(rect, '<Enter>', lambda _, x=x, y=y: self.view_organism_details(x, y))
-                self.canvas.tag_bind(rect, '<Button-1>', lambda _, x=x, y=y: self.view_organism_details(x, y, clicked=True))
-                self.canvas.tag_bind(rect, '<Leave>', lambda _: self.clear_organism_details())
-
-        bottom = tk.Label(m2, text="bottom pane")
-        m2.add(bottom)
-        self.render()
-        self.run_after_delay()
-
-    def run_after_delay(self):
-        self.root.after(int(1000 * self.speed), self.run)
+        return window
     
     def zoom_canvas(self, factor):
+        """
+        Scale the canvas view by the given `factor`
+        """
         self.canvas.scale(tk.ALL, 0, 0, factor, factor)
         self.original_scale_factor *= 1.0 / factor
 
     def reset_view(self):
+        """
+        Reset self.canvas Zoom and position.
+        """
         self.canvas.scale(tk.ALL, 0, 0, self.original_scale_factor, self.original_scale_factor)
         self.original_scale_factor = 1.0
         self.canvas.xview_moveto(self.canvas_original_x)
