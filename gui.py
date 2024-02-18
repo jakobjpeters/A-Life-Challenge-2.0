@@ -247,9 +247,8 @@ class App:
         will be shown at all times (except temporarily when hovering over
         another organism)
         """
-        cell_content = self.world.cell_content(x, y)
-        if cell_content:
-            organism = cell_content[0]
+        organism = self.world.cell_content(x, y)
+        if organism:
             self.organism_info_area.configure(text=str(organism))
             if clicked:
                 self.clear_tracked_organism()

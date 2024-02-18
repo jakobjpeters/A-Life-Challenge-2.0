@@ -7,10 +7,10 @@ N_ORGANISMS = 100
 N_SPECIES = 10
 
 class TestOrganism(unittest.TestCase):
-    organism = Organism(X, Y)
+    organism = Organism(X, Y, STARTING_ENERGY_RATE)
 
     def test_init(self):
-        organism = Organism(X, Y)
+        organism = Organism(X, Y, STARTING_ENERGY_RATE)
         self.assertEqual(organism.x, X)
         self.assertEqual(organism.y, Y)
 
@@ -34,21 +34,16 @@ class TestWorld(unittest.TestCase):
         for row in self.world.grid:
             self.assertTrue(len(row) == GRID_WIDTH)
 
-    def test_get_cell(self):
-        for organism in self.world.organisms:
-            self.assertIn(organism, self.world.get_cell(organism))
-
     def test_insert_to_cell(self):
-        organism = Organism(X, Y)
-        cell = self.world.get_cell(organism)
-        self.assertNotIn(organism, cell)
+        organism = Organism(X, Y, STARTING_ENERGY_RATE)
+        self.assertNotEqual(organism, self.world.cell_content(X, Y))
         self.world.insert_to_cell(organism)
-        self.assertIn(organism, cell)
+        self.assertEqual(organism, self.world.cell_content(X, Y))
 
     def test_remove_from_cell(self):
         organism = self.world.organisms[0]
         self.world.remove_from_cell(organism)
-        self.assertNotIn(organism, self.world.get_cell(organism))
+        self.assertNotEqual(organism, self.world.cell_content(X, Y))
         self.world.insert_to_cell(organism)
 
     def test_update(self):
@@ -58,8 +53,8 @@ class TestWorld(unittest.TestCase):
 
 class TestMeet(unittest.TestCase):
     def setUp(self):
-        self.organism_1 = Organism(0, 0)
-        self.organism_2 = Organism(0, 0)
+        self.organism_1 = Organism(0, 0, STARTING_ENERGY_RATE)
+        self.organism_2 = Organism(0, 0, STARTING_ENERGY_RATE)
 
         # Different skin options to make different 'species' by default
         self.organism_1.genome.phenotype[Skin] = Skin.FUR
