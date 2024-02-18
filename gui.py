@@ -118,24 +118,57 @@ class App:
                 pickle.dump(self.world, pkl)
 
         # new frame for after pushing the start button
-        self.canvas = tk.Canvas(self.main_frame, width=800,
-                           height=600)
+        self.canvas = tk.Canvas(self.main_frame, width=1200, height=600)
+        self.canvas.pack(fill=tk.BOTH, expand=True)
+
+        self.original_scale_factor = 1.0
+        self.canvas.bind('<ButtonPress-1>', lambda event: self.canvas.scan_mark(event.x, event.y))
+        self.canvas.bind("<B1-Motion>", lambda event: self.canvas.scan_dragto(event.x, event.y, gain=1))
+        self.canvas_original_x = self.canvas.xview()[0]
+        self.canvas_original_y = self.canvas.yview()[0]
 
         self.pause_button = tk.Button(self.canvas, text='Pause', command=self.toggle_pause,
                         width=30, height=2)
         self.pause_button.place(relx=0.8, rely=0.5, anchor=tk.CENTER)
 
+
+        self.zoom_in_button = tk.Button(
+            self.canvas,
+            text="Zoom in",
+            command=lambda: self.zoom_canvas(1.2),
+            width=5,
+            height=2
+        )
+        self.zoom_in_button.place(relx=0.7, rely=0.6, anchor=tk.CENTER)
+        self.zoom_out_button = tk.Button(
+            self.canvas,
+            text="Zoom out",
+            command=lambda: self.zoom_canvas(0.8),
+            width=5,
+            height=2
+        )
+        self.zoom_out_button.place(relx=0.8, rely=0.6, anchor=tk.CENTER)
+        self.reset_view_button = tk.Button(
+            self.canvas,
+            text='Reset view',
+            command=self.reset_view,
+            width=5,
+            height=2
+        )
+        self.reset_view_button.place(relx=0.9, rely=0.6, anchor=tk.CENTER)
+
+
         self.faster_button = tk.Button(self.canvas, text='Faster', command=self.faster,
                                        width=5, height=2)
-        self.faster_button.place(relx=0.7, rely=0.6, anchor=tk.CENTER)
+        self.faster_button.place(relx=0.7, rely=0.7, anchor=tk.CENTER)
 
         self.slower_button = tk.Button(self.canvas, text='Slower', command=self.slower,
                                        width=5, height=2)
-        self.slower_button.place(relx=0.8, rely=0.6, anchor=tk.CENTER)
+        self.slower_button.place(relx=0.8, rely=0.7, anchor=tk.CENTER)
 
-        self.slower_button = tk.Button(self.canvas, text='Reset', command=self.reset_speed,
+        self.slower_button = tk.Button(self.canvas, text='Normal', command=self.reset_speed,
                                        width=5, height=2)
-        self.slower_button.place(relx=0.9, rely=0.6, anchor=tk.CENTER)
+        self.slower_button.place(relx=0.9, rely=0.7, anchor=tk.CENTER)
 
         self.organism_info_area = tk.Label(self.main_frame, justify=tk.LEFT, anchor='w', font='TkFixedFont', text='Hover over organism to view details')
         self.organism_info_area.place(anchor=tk.N, relx=0.9, rely=0.0, width=500, height=200)
@@ -145,10 +178,11 @@ class App:
         for y in range(GRID_HEIGHT):
             self.grid.append([])
             for x in range(GRID_WIDTH):
-                _x, _y = CELL_SIZE * (x + 1), CELL_SIZE * (y + 1)
+                cell_size = 400 / GRID_WIDTH
+                _x, _y = cell_size * (x + 1), cell_size * (y + 1)
                 rect = self.canvas.create_rectangle(
-                    _x, _y, _x + CELL_SIZE,
-                    _y + CELL_SIZE,
+                    _x, _y, _x + cell_size,
+                    _y + cell_size,
                     fill='',
                     outline='',
                 )
@@ -164,6 +198,16 @@ class App:
         self.canvas.pack()
         self.render()
         self.run()
+    
+    def zoom_canvas(self, factor):
+        self.canvas.scale(tk.ALL, 0, 0, factor, factor)
+        self.original_scale_factor *= 1.0 / factor
+
+    def reset_view(self):
+        self.canvas.scale(tk.ALL, 0, 0, self.original_scale_factor, self.original_scale_factor)
+        self.original_scale_factor = 1.0
+        self.canvas.xview_moveto(self.canvas_original_x)
+        self.canvas.yview_moveto(self.canvas_original_y)
 
     def run(self):
         """
@@ -262,9 +306,6 @@ class App:
                     return
                 self.highlight_cell(x, y)
                 self.tracked_organism = organism
-        elif clicked:
-            self.clear_tracked_organism()
-            self.clear_organism_details()
 
     def clear_organism_details(self):
         """

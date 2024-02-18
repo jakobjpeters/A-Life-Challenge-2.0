@@ -4,8 +4,8 @@ from random import randint, choice, gauss
 from math import ceil, copysign
 from enum import Enum, auto
 
-GRID_WIDTH = 20
-GRID_HEIGHT = 20
+GRID_WIDTH = 40
+GRID_HEIGHT = 40
 STARTING_ENERGY_LEVEL = 10
 GENE_LENGTH = 50  # increasing GENE_LENGTH increases rate of phenotype change
 EAT_ENERGY_RATE = 0.5
