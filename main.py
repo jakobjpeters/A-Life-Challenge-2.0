@@ -15,7 +15,8 @@ SIGMA = 1
 MUTATION_RATE = 50  # range from 0 to 100%
 
 class Relationships(Enum):
-    FRIENDLY = auto()
+    NEUTRAL = auto()
+    CONSPECIFIC = auto()
     PREY = auto()
     PREDATOR = auto()
 
@@ -51,17 +52,11 @@ class Sleep(Enum):
     NOCTURNAL = auto()
 
 
-class Body(Enum):
+class Size(Enum):
     ONE = 1
     TWO = 2
     THREE = 3
     FOUR = 4
-    FIVE = 5
-    SIX = 6
-    SEVEN = 7
-    EIGHT = 8
-    NINE = 9
-    TEN = 10
 
 
 PREDATOR_PREY_TYPES = {EnergySource[predator]: [EnergySource[x] for x in prey] for predator, prey in (
@@ -72,7 +67,7 @@ PREDATOR_PREY_TYPES = {EnergySource[predator]: [EnergySource[x] for x in prey] f
 )}
 
 
-TRAITS = [Reproduction, EnergySource, Skin, Movement, Sleep, Body]
+TRAITS = [Reproduction, EnergySource, Skin, Movement, Sleep, Size]
 
 
 def distance(xy, _xy):
@@ -156,20 +151,16 @@ class Organism():
     The `x` and `y` attributes indicate its position in the environment.
     An organism dies when its `energy_level` is less than or equal to `0`.
     """
-    photosynthesis_rate = 2.5  # energy_levels / frame during day
-    metabolism_rate = 1  # make this a function of "size"?
-    troph_type = 'p'  # h, c, o
-    movement = 0
-    vision = 0
+    photosynthesis_rate = 10  # energy_levels / frame during day
 
-    def __init__(self, x, y, genotype = {}):
+    def __init__(self, x, y, is_day = True, genotype = {}):
         """
         Instantiate an organism at the given `x` and `y` coordinates.
         """
         self.genome = Genome(genotype=genotype)
-        self.energy_level = choice((4, 5, 6))
+        self.energy_level = 20
         self.update_location(x, y)
-        self.awake = True
+        self.awake = (self.genome.phenotype[Sleep] == Sleep.DIURNAL) == is_day
         self.alive = True
 
     def update_location(self, x, y):
@@ -191,10 +182,11 @@ class Organism():
         Adjust organism's energy level by a baseline metabolism rate. Metabolism
         is reduced by half when an organism is asleep.
         """
+        metabolism_rate = self.genome.phenotype[Size].value
         if self.awake:
-            self.energy_level -= self.metabolism_rate
+            self.energy_level -= metabolism_rate
         else:
-            self.energy_level -= 0.5 * self.metabolism_rate
+            self.energy_level -= 0.5 * metabolism_rate
 
     def eat(self, other):
         """
@@ -226,7 +218,7 @@ class Organism():
 
         # No cannibalism.
         if phenotype_1 == phenotype_2:
-            return Relationships.FRIENDLY
+            return Relationships.NEUTRAL
 
         organism_1_type = phenotype_1[EnergySource]
         organism_2_type = phenotype_2[EnergySource]
@@ -234,18 +226,20 @@ class Organism():
         organism_2_prey_types = PREDATOR_PREY_TYPES[organism_2_type]
         organism_1_can_eat_organism_2 = organism_2_type in organism_1_prey_types
         organism_2_can_eat_organism_1 = organism_1_type in organism_2_prey_types
+        organism_1_size = self.genome.phenotype[Size].value
+        organism_2_size = other.genome.phenotype[Size].value
 
-        relationship = Relationships.FRIENDLY
+        relationship = Relationships.NEUTRAL
         if organism_1_can_eat_organism_2 and not organism_2_can_eat_organism_1:
-            if self.energy_level > other.energy_level:
+            if organism_1_size > organism_2_size:
                 relationship = Relationships.PREY
         elif organism_2_can_eat_organism_1 and not organism_1_can_eat_organism_2:
-            if other.energy_level > self.energy_level:
+            if organism_2_size > organism_1_size:
                 relationship = Relationships.PREDATOR
         elif organism_1_can_eat_organism_2 and organism_2_can_eat_organism_1:
-            if self.energy_level > other.energy_level:
+            if organism_1_size > organism_2_size:
                 relationship = Relationships.PREY
-            elif other.energy_level > self.energy_level:
+            elif organism_2_size > organism_1_size:
                 relationship = Relationships.PREDATOR
         return relationship
 
@@ -308,7 +302,6 @@ class World():
     The `grid` is the environment, where `grid[y][x]` is a list of things in that cell.
     The `frame` is a counter which increases by `1` every time `update` is called.
     """
-
     sun = Sun()
     frame = 0
 
@@ -331,10 +324,9 @@ class World():
         self.species = Species(self.organisms)
 
     def spawn_organism(self, x, y, genotype):
-        _organism = Organism(x, y, genotype)
+        _organism = Organism(x, y, self.sun.is_day, genotype)
         self.organisms.append(_organism)
         self.insert_to_cell(_organism)
-        _organism.awake = (_organism.genome.phenotype[Sleep] == Sleep.DIURNAL) == self.sun.is_day
 
     def get_cell(self, _organism):
         """
@@ -366,7 +358,7 @@ class World():
 
         relationship = organism_1.meet(organism_2)
 
-        if relationship == Relationships.FRIENDLY:
+        if relationship == Relationships.NEUTRAL:
             # both organisms have sexual reproduction
             if organism_1.genome.phenotype[Reproduction] == Reproduction.SEXUAL and organism_2.genome.phenotype[
                     Reproduction] == Reproduction.SEXUAL:
@@ -384,6 +376,12 @@ class World():
         new offspring is placed in an unoccupied space in the vicinity of parents
         if there is no nearby empty cell, offspring is not created
         """
+        if any(_organism.energy_level < _organism.genome.phenotype[Size].value for _organism in (organism_1, organism_2)):
+            return
+
+        organism_1.metabolize()
+        organism_2.metabolize()
+
         # randomly select a gene from each parent
         genotype_1 = organism_1.get_genotype_values()
         genotype_2 = organism_1.get_genotype_values()
@@ -434,12 +432,11 @@ class World():
         If no organism is found, the organism will wander `0` or `1` cells.
 
         TODO: separate relationships and actions
-        TODO: separate vision and distance moved
         TODO: write tests
         """
         x, y = _organism.get_location()
         _distance = 0
-        action = Relationships.FRIENDLY
+        action = Relationships.NEUTRAL
         _reachable_cells = reachable_cells(x, y, VISIBLE_RANGE)
 
         for _x, _y in _reachable_cells:

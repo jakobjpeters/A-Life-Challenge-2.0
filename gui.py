@@ -2,16 +2,13 @@ from random import seed
 import pickle
 import tkinter as tk
 import time
-from main import GRID_HEIGHT, GRID_WIDTH, World, Body
+from main import GRID_HEIGHT, GRID_WIDTH, World
 
 WIDTH = 800
 HEIGHT = 600
 CELL_SIZE = 8
 FPS_REFRESH_RATE = 1 # second
 CELL_COLOR = '#2f2f2f'
-BODY_COLORS = {body: color for body, color in zip(Body, (
-    '#f5f5f5', '#00FFFF', '#0000FF', '#9b30ff', '#ffc0cb', '#ff0000', '#FFA500', '#FFF000', '#00FF00', '#000000'
-))}
 
 class App:
     """
