@@ -160,7 +160,10 @@ class App:
         self.new_frame.pack_forget()
         self.canvas.pack()
         self.render()
-        self.run()
+        self.run_after_delay()
+
+    def run_after_delay(self):
+        self.root.after(int(1000 * self.speed), self.run)
 
     def run(self):
         """
@@ -177,7 +180,7 @@ class App:
                 self.canvas.configure(bg='black')
             self.render()
 
-        self.root.after(int(1000 * self.speed), self.run)
+        self.run_after_delay()
 
     def faster(self):
         """Double simulation speed."""
