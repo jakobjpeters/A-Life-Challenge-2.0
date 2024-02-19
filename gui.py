@@ -1,17 +1,16 @@
-from random import seed
+import copy
 import pickle
+import random
 import tkinter as tk
+import tkinter.filedialog
 import time
-from main import GRID_HEIGHT, GRID_WIDTH, World, Body
+from main import GRID_HEIGHT, GRID_WIDTH, World
 
 WIDTH = 800
 HEIGHT = 600
-CELL_SIZE = 20
+CELL_SIZE = 8
 FPS_REFRESH_RATE = 1 # second
 CELL_COLOR = '#2f2f2f'
-BODY_COLORS = {body: color for body, color in zip(Body, (
-    '#f5f5f5', '#00FFFF', '#0000FF', '#9b30ff', '#ffc0cb', '#ff0000', '#FFA500', '#FFF000', '#00FF00', '#000000'
-))}
 
 class App:
     """
@@ -22,6 +21,7 @@ class App:
     def __init__(self, root):
         self.root = root
         root.title("A-Life Challenge 2.0")
+        self.world = None
 
         # window size
         screenwidth = root.winfo_screenwidth()
@@ -45,7 +45,7 @@ class App:
                                  width=30, height=2)
         new_button.place(relx=0.5, rely=0.2, anchor=tk.CENTER)
 
-        load_button = tk.Button(button_canvas, text="Load", command=self.load_button_command,
+        load_button = tk.Button(button_canvas, text="Load", command=self.load,
                                 width=30, height=2)
         load_button.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
@@ -81,74 +81,83 @@ class App:
         species_label = tk.Label(self.new_frame, text="\nNumber of species", font=('Times', 14), fg="#000000")
         species_label.pack()
 
-        self.species_slider = tk.Scale(self.new_frame, from_=0, to=10, orient='horizontal')
-        self.species_slider.set(5)
+        self.species_slider = tk.Scale(self.new_frame, from_=0, to=20, orient='horizontal')
+        self.species_slider.set(10)
         self.species_slider.pack()
 
         organisms_label = tk.Label(self.new_frame, text="\nNumber of organisms", font=('Times', 14), fg="#000000")
         organisms_label.pack()
 
-        self.organisms_slider = tk.Scale(self.new_frame, from_=0, to=100, orient='horizontal')
-        self.organisms_slider.set(50)
+        self.organisms_slider = tk.Scale(self.new_frame, from_=0, to=400, orient='horizontal')
+        self.organisms_slider.set(200)
         self.organisms_slider.pack()
 
         start_button = tk.Button(self.new_frame, text="Start", command=self.start_button_command,
                             width=30, height=2, bg="#5189f0", fg="#FFFFFF", activebackground="#5C89f0")
         start_button.pack()
 
-
-
     def start_button_command(self):
         """
         Starts the simulation by instantiating a new `World`.
-        The left side of the simulation displays the simulated environment.
-        The right side of the screen contains a button to calculate the next frame and
-        will display other information about the simulation.
+
+        The left side of the window displays simulation controls and information
+        about individual organisms. The right side of the window shows a visual
+        representation of the simulation and general information about the
+        current state.
         """
-        seed(self.seed_entry.get())
 
-        # FIXME: option to load / save worlds in GUI
-        world_to_load = ''  # set None
-        if world_to_load:
-            with open('world.pkl', 'rb') as pkl:
-                self.world = pickle.load(pkl)
+        if self.world is None:
+            seed = int(self.seed_entry.get())
+            self.world = World(
+                n_organisms=self.organisms_slider.get(),
+                n_species=self.species_slider.get(),
+                seed=seed
+            )
+            random.seed(seed)
+            self.initial_world = copy.deepcopy(self.world)
         else:
-            self.world = World(n_organisms=self.organisms_slider.get(), n_species=self.species_slider.get())
-            with open('world.pkl', 'wb') as pkl:
-                pickle.dump(self.world, pkl)
+            # use seed from saved simulation
+            random.seed(self.world.seed)
 
-        # new frame for after pushing the start button
-        self.canvas = tk.Canvas(self.main_frame, width=800,
-                           height=600)
+    
+        # Set up simulation windows
+        self.main_frame.pack_forget()
+        window = self.set_up_left_panel()
+        window.pack(fill=tk.BOTH, expand=1)
+        subwindow = tk.PanedWindow(window, orient=tk.VERTICAL, bg='slategray')
+        window.add(subwindow)
+        self.canvas = tk.Canvas(subwindow, width=400, height=400)
+        self.set_up_canvas()
+        subwindow.add(self.canvas)
+        bottom = tk.Label(subwindow, text="bottom pane")
+        subwindow.add(bottom)
 
-        self.pause_button = tk.Button(self.canvas, text='Pause', command=self.toggle_pause,
-                        width=30, height=2)
-        self.pause_button.place(relx=0.8, rely=0.5, anchor=tk.CENTER)
+        # Display and run simulation
+        self.render()
+        self.run_after_delay()
 
-        self.faster_button = tk.Button(self.canvas, text='Faster', command=self.faster,
-                                       width=5, height=2)
-        self.faster_button.place(relx=0.7, rely=0.6, anchor=tk.CENTER)
+    def run_after_delay(self):
+        self.root.after(int(1000 * self.speed), self.run)
 
-        self.slower_button = tk.Button(self.canvas, text='Slower', command=self.slower,
-                                       width=5, height=2)
-        self.slower_button.place(relx=0.8, rely=0.6, anchor=tk.CENTER)
-
-        self.slower_button = tk.Button(self.canvas, text='Reset', command=self.reset_speed,
-                                       width=5, height=2)
-        self.slower_button.place(relx=0.9, rely=0.6, anchor=tk.CENTER)
-
-        self.organism_info_area = tk.Label(self.main_frame, justify=tk.LEFT, anchor='w', font='TkFixedFont', text='Hover over organism to view details')
-        self.organism_info_area.place(anchor=tk.N, relx=0.9, rely=0.0, width=500, height=200)
-        self.canvas.pack()
+    def set_up_canvas(self):
+        """
+        Set up self.canvas creating a view of the World and its Organisms.
+        """
+        self.original_scale_factor = 1.0
+        self.canvas.bind('<ButtonPress-1>', lambda event: self.canvas.scan_mark(event.x, event.y))
+        self.canvas.bind("<B1-Motion>", lambda event: self.canvas.scan_dragto(event.x, event.y, gain=1))
+        self.canvas_original_x = self.canvas.xview()[0]
+        self.canvas_original_y = self.canvas.yview()[0]
 
         self.grid = []
         for y in range(GRID_HEIGHT):
             self.grid.append([])
             for x in range(GRID_WIDTH):
-                _x, _y = CELL_SIZE * (x + 1), CELL_SIZE * (y + 1)
+                cell_size = 400 / GRID_WIDTH
+                _x, _y = cell_size * (x + 1), cell_size * (y + 1)
                 rect = self.canvas.create_rectangle(
-                    _x, _y, _x + CELL_SIZE,
-                    _y + CELL_SIZE,
+                    _x, _y, _x + cell_size,
+                    _y + cell_size,
                     fill='',
                     outline='',
                 )
@@ -160,10 +169,115 @@ class App:
                 self.canvas.tag_bind(rect, '<Leave>', lambda _: self.clear_organism_details())
 
 
-        self.new_frame.pack_forget()
-        self.canvas.pack()
-        self.render()
-        self.run()
+    def set_up_left_panel(self):
+        """
+        Setup left panel containing control buttons and Organism info.
+        """
+        window = tk.PanedWindow(bg='slategray', relief='raised')
+        left_frame = tk.Frame(window)
+
+        save_button = tk.Button(
+            left_frame,
+            text='Save',
+            command=self.save,
+            width=30,
+            height=2
+        )
+        save_button.pack()
+
+        self.pause_button = tk.Button(
+            left_frame,
+            text='Pause',
+            command=self.toggle_pause,
+            width=30,
+            height=2
+        )
+        self.pause_button.pack()
+
+        window.add(left_frame)
+
+        zoom_button_row = tk.Frame(left_frame, width=5, height=2)
+        tk.Label(zoom_button_row, text='Zoom:', width=5).pack(side=tk.LEFT)
+
+        zoom_in_button = tk.Button(
+            zoom_button_row,
+            text="Zoom in",
+            command=lambda: self.zoom_canvas(1.2),
+            width=5,
+            height=2
+        )
+        zoom_in_button.pack(side=tk.LEFT)
+        zoom_out_button = tk.Button(
+            zoom_button_row,
+            text="Zoom out",
+            command=lambda: self.zoom_canvas(0.8),
+            width=5,
+            height=2
+        )
+        zoom_out_button.pack(side=tk.LEFT)
+        reset_view_button = tk.Button(
+            zoom_button_row,
+            text='Reset',
+            command=self.reset_view,
+            width=5,
+            height=2
+        )
+        reset_view_button.pack(side=tk.LEFT)
+        zoom_button_row.pack()
+
+        speed_button_row = tk.Frame(left_frame, width=5, height=2)
+        tk.Label(speed_button_row, text='Speed:', width=5).pack(side=tk.LEFT)
+
+        faster_button = tk.Button(
+            speed_button_row,
+            text='Faster',
+            command=self.faster,
+            width=5,
+            height=2
+        )
+        faster_button.pack(side=tk.LEFT)
+        slower_button = tk.Button(
+            speed_button_row,
+            text='Slower',
+            command=self.slower,
+            width=5,
+            height=2
+        )
+        slower_button.pack(side=tk.LEFT)
+        reset_button = tk.Button(speed_button_row,
+            text='Reset',
+            command=self.reset_speed,
+            width=5,
+            height=2
+        )
+        reset_button.pack(side=tk.LEFT)
+        speed_button_row.pack()
+
+        self.organism_info_area = tk.Label(
+            left_frame,
+            justify=tk.LEFT,
+            anchor='e',
+            font='TkFixedFont',
+            text='Hover over organism to view details'
+        )
+        self.organism_info_area.pack()
+        return window
+    
+    def zoom_canvas(self, factor):
+        """
+        Scale the canvas view by the given `factor`
+        """
+        self.canvas.scale(tk.ALL, 0, 0, factor, factor)
+        self.original_scale_factor *= 1.0 / factor
+
+    def reset_view(self):
+        """
+        Reset self.canvas Zoom and position.
+        """
+        self.canvas.scale(tk.ALL, 0, 0, self.original_scale_factor, self.original_scale_factor)
+        self.original_scale_factor = 1.0
+        self.canvas.xview_moveto(self.canvas_original_x)
+        self.canvas.yview_moveto(self.canvas_original_y)
 
     def run(self):
         """
@@ -180,7 +294,21 @@ class App:
                 self.canvas.configure(bg='black')
             self.render()
 
-        self.root.after(int(1000 * self.speed), self.run)
+        self.run_after_delay()
+
+    def save(self):
+        """Save simulation as a .world file."""
+        fname = tkinter.filedialog.asksaveasfilename(defaultextension='.world')
+        with open(fname, 'wb') as f:
+            pickle.dump(self.initial_world, f)
+
+    def load(self):
+        """Load .world file and launch simulation."""
+        file = tkinter.filedialog.askopenfilename()
+        with open(file, 'rb') as f:
+            # FIXME: handle invalid files
+            self.world = pickle.load(f)
+        self.start_button_command()
 
     def faster(self):
         """Double simulation speed."""
@@ -201,9 +329,6 @@ class App:
             self.pause_button.config(text='Resume')
         else:
             self.pause_button.config(text='Pause')
-
-    def load_button_command(self):
-        print("Load button command")
 
     def about_button_command(self):
         print("About button command")
@@ -229,18 +354,14 @@ class App:
         """
         for x in range(GRID_WIDTH):
             for y in range(GRID_HEIGHT):
-                cell = self.world.grid[y][x]
-                if cell:
-                    organism = cell[0]
-                    color = BODY_COLORS[organism.genome.phenotype[Body]]
-                    if organism.awake:
-                        self.color_cell(x, y, color)
-                    else:
-                        self.color_cell(x, y, darken_color(color))
-                    if organism is self.tracked_organism:
-                        self.highlight_cell(x, y)
-                else:
-                    self.color_cell(x, y, CELL_COLOR)
+                self.color_cell(x, y, CELL_COLOR)
+
+        species = self.world.species
+        for organism, label in zip(self.world.organisms, species.labels):
+            x, y = organism.get_location()
+            self.color_cell(x, y, "#%02x%02x%02x" % tuple([int(255 * color) for color in species.labels_colors[label]]))
+            if organism is self.tracked_organism:
+                self.highlight_cell(x, y)
 
     def view_organism_details(self, x, y, clicked=False):
         """
@@ -251,9 +372,8 @@ class App:
         will be shown at all times (except temporarily when hovering over
         another organism)
         """
-        cell_content = self.world.cell_content(x, y)
-        if cell_content:
-            organism = cell_content[0]
+        organism = self.world.cell_content(x, y)
+        if organism:
             self.organism_info_area.configure(text=str(organism))
             if clicked:
                 self.clear_tracked_organism()
@@ -262,9 +382,6 @@ class App:
                     return
                 self.highlight_cell(x, y)
                 self.tracked_organism = organism
-        elif clicked:
-            self.clear_tracked_organism()
-            self.clear_organism_details()
 
     def clear_organism_details(self):
         """
