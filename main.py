@@ -296,10 +296,11 @@ class World():
     sun = Sun()
     frame = 0
 
-    def __init__(self, n_organisms, n_species):
+    def __init__(self, n_organisms, n_species, seed):
         """
         Instantiate a simulated environment and append each organism to its respective cell.
         """
+        self.seed = seed
         self.grid = [[None for __ in range(GRID_WIDTH)] for _ in range(GRID_HEIGHT)]
         self.organisms = []
 

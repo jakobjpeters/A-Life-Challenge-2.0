@@ -1,6 +1,8 @@
-from random import seed
+import copy
 import pickle
+import random
 import tkinter as tk
+import tkinter.filedialog
 import time
 from main import GRID_HEIGHT, GRID_WIDTH, World
 
@@ -19,6 +21,7 @@ class App:
     def __init__(self, root):
         self.root = root
         root.title("A-Life Challenge 2.0")
+        self.world = None
 
         # window size
         screenwidth = root.winfo_screenwidth()
@@ -42,7 +45,7 @@ class App:
                                  width=30, height=2)
         new_button.place(relx=0.5, rely=0.2, anchor=tk.CENTER)
 
-        load_button = tk.Button(button_canvas, text="Load", command=self.load_button_command,
+        load_button = tk.Button(button_canvas, text="Load", command=self.load,
                                 width=30, height=2)
         load_button.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
@@ -96,23 +99,26 @@ class App:
     def start_button_command(self):
         """
         Starts the simulation by instantiating a new `World`.
-        
+
         The left side of the window displays simulation controls and information
         about individual organisms. The right side of the window shows a visual
         representation of the simulation and general information about the
         current state.
         """
-        seed(self.seed_entry.get())
 
-        # FIXME: option to load / save worlds in GUI
-        world_to_load = ''  # set None
-        if world_to_load:
-            with open('world.pkl', 'rb') as pkl:
-                self.world = pickle.load(pkl)
+        if self.world is None:
+            seed = int(self.seed_entry.get())
+            self.world = World(
+                n_organisms=self.organisms_slider.get(),
+                n_species=self.species_slider.get(),
+                seed=seed
+            )
+            random.seed(seed)
+            self.initial_world = copy.deepcopy(self.world)
         else:
-            self.world = World(n_organisms=self.organisms_slider.get(), n_species=self.species_slider.get())
-            with open('world.pkl', 'wb') as pkl:
-                pickle.dump(self.world, pkl)
+            # use seed from saved simulation
+            random.seed(self.world.seed)
+
     
         # Set up simulation windows
         self.main_frame.pack_forget()
@@ -170,11 +176,22 @@ class App:
         window = tk.PanedWindow(bg='slategray', relief='raised')
         left_frame = tk.Frame(window)
 
+        save_button = tk.Button(
+            left_frame,
+            text='Save',
+            command=self.save,
+            width=30,
+            height=2
+        )
+        save_button.pack()
+
         self.pause_button = tk.Button(
             left_frame,
             text='Pause',
             command=self.toggle_pause,
-            width=30, height=2)
+            width=30,
+            height=2
+        )
         self.pause_button.pack()
 
         window.add(left_frame)
@@ -279,6 +296,20 @@ class App:
 
         self.run_after_delay()
 
+    def save(self):
+        """Save simulation as a .world file."""
+        fname = tkinter.filedialog.asksaveasfilename(defaultextension='.world')
+        with open(fname, 'wb') as f:
+            pickle.dump(self.initial_world, f)
+
+    def load(self):
+        """Load .world file and launch simulation."""
+        file = tkinter.filedialog.askopenfilename()
+        with open(file, 'rb') as f:
+            # FIXME: handle invalid files
+            self.world = pickle.load(f)
+        self.start_button_command()
+
     def faster(self):
         """Double simulation speed."""
         self.speed *= 0.5
@@ -298,9 +329,6 @@ class App:
             self.pause_button.config(text='Resume')
         else:
             self.pause_button.config(text='Pause')
-
-    def load_button_command(self):
-        print("Load button command")
 
     def about_button_command(self):
         print("About button command")
