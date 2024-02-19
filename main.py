@@ -1,5 +1,6 @@
 import textwrap
 
+from random import randint, choice, gauss, sample
 from math import ceil, copysign
 from enum import Enum, auto
 from species import Species
