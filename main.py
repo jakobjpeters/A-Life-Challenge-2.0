@@ -5,8 +5,8 @@ from math import ceil, copysign
 from enum import Enum, auto
 from species import Species
 
-GRID_WIDTH = 20
-GRID_HEIGHT = 20
+GRID_WIDTH = 50
+GRID_HEIGHT = 50
 STARTING_ENERGY_RATE = 10
 GENE_LENGTH = 50  # increasing GENE_LENGTH increases rate of phenotype change
 EAT_ENERGY_RATE = 10
@@ -672,8 +672,7 @@ class World():
 
 
 if __name__ == '__main__':
-    world = World(100, 30, 10)
-    # world = World()
+    world = World()
     stop = False
 
     while True:
