@@ -14,12 +14,13 @@ VISIBLE_RANGE = 5
 SIGMA = 1
 MUTATION_RATE = 50  # range from 0 to 100%
 PHOTOSYNTHESIS_RATE = 1.1
+REPRODDUCTION_ENERGY_THRESHOLD = 2
 
 
 class Relationships(Enum):
     NEUTRAL = auto()
-    CONSPECIFIC = auto()
     PREY = auto()
+    CONSPECIFIC = auto()
     PREDATOR = auto()
 
 
@@ -195,7 +196,7 @@ class Organism():
         """
         return self.x, self.y
 
-    def meet(self, other):
+    def meet(self, other, organisms_labels):
         """
         Return the relationship that `self` has to `other`.
 
@@ -206,15 +207,8 @@ class Organism():
         then then the relationship is `predator`.
         Otherwise, the relationship is `friendly`.
         """
-        phenotype_1 = self.genome.phenotype
-        phenotype_2 = other.genome.phenotype
-
-        # No cannibalism.
-        if phenotype_1 == phenotype_2:
-            return Relationships.NEUTRAL
-
-        organism_1_type = phenotype_1[EnergySource]
-        organism_2_type = phenotype_2[EnergySource]
+        organism_1_type = self.genome.phenotype[EnergySource]
+        organism_2_type = other.genome.phenotype[EnergySource]
         organism_1_prey_types = PREDATOR_PREY_TYPES[organism_1_type]
         organism_2_prey_types = PREDATOR_PREY_TYPES[organism_2_type]
         organism_1_can_eat_organism_2 = organism_2_type in organism_1_prey_types
@@ -223,7 +217,10 @@ class Organism():
         organism_2_size = other.size()
 
         relationship = Relationships.NEUTRAL
-        if organism_1_can_eat_organism_2 and not organism_2_can_eat_organism_1:
+        if self in organisms_labels and other in organisms_labels and organisms_labels[self] == organisms_labels[other]:
+            if all(_organism.energy_level > REPRODDUCTION_ENERGY_THRESHOLD * _organism.size() for _organism in (self, other)):
+                relationship = Relationships.CONSPECIFIC
+        elif organism_1_can_eat_organism_2 and not organism_2_can_eat_organism_1:
             if organism_1_size > organism_2_size:
                 relationship = Relationships.PREY
         elif organism_2_can_eat_organism_1 and not organism_1_can_eat_organism_2:
@@ -361,21 +358,20 @@ class World():
         Handle the collision of two organisms by them reproducing,
         one eating the other, or nothing.
         """
-        relationship = organism_1.meet(organism_2)
+        relationship = organism_1.meet(organism_2, self.species.organisms_labels)
 
-        if relationship == Relationships.NEUTRAL:
+        if relationship == Relationships.CONSPECIFIC:
             # both organisms have sexual reproduction and are not photosynthesizer
-            if not self.matching_traits(organism_1, organism_2, EnergySource, EnergySource.PHOTOSYNTHESIS):
-                if self.matching_traits(organism_1, organism_2, Reproduction, Reproduction.SEXUAL):
-                    if self.matching_traits(organism_1, organism_2, Movement, Movement.QUADRIPEDAL):
-                        # quadripeds reproduce twice
-                        self.sexual_reproduce(organism_1, organism_2)
+            if self.matching_traits(organism_1, organism_2, Reproduction, Reproduction.SEXUAL):
+                if self.matching_traits(organism_1, organism_2, Movement, Movement.QUADRIPEDAL):
+                    # quadripeds reproduce twice
                     self.sexual_reproduce(organism_1, organism_2)
+                self.sexual_reproduce(organism_1, organism_2)
         elif relationship == Relationships.PREY:
             if self.defense_mechanism(organism_1, organism_2):
                 organism_1.eat(organism_2)
                 self.remove_from_cell(organism_2)
-        elif relationship == Relationships.PREDATOR:  # IS THIS EVER BEING CALLED???????
+        elif relationship == Relationships.PREDATOR:  # IS THIS EVER BEING CALLED??????? no, not rn
             if self.defense_mechanism(organism_2, organism_1):
                 organism_2.eat(organism_1)
                 self.remove_from_cell(organism_1)
@@ -577,7 +573,7 @@ class World():
         for _x, _y in _reachable_cells:
             cell = self.cell_content(_x, _y)
             if cell:
-                _action = _organism.meet(cell)
+                _action = _organism.meet(cell, self.species.organisms_labels)
                 __distance = distance((x, y), (_x, _y))
                 if action.value < _action.value or (action.value == _action.value and __distance < _distance):
                     x, y = _x, _y

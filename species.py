@@ -37,6 +37,7 @@ class Species():
         mean_shift = MeanShift(seeds = self.seeds, bandwidth = BANDWIDTH).fit(array(
             [[organism.genome.genotype[key] for key in organism.genome.genotype] for organism in organisms]))
         self.labels, seeds = mean_shift.labels_, mean_shift.cluster_centers_
+        self.organisms_labels = {organism: label for organism, label in zip(organisms, self.labels)}
 
         if self.labels_colors:
             if len(self.seeds) < len(seeds):
