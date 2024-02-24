@@ -357,9 +357,9 @@ class App:
                 self.color_cell(x, y, CELL_COLOR)
 
         species = self.world.species
-        for organism, label in zip(self.world.organisms, species.labels):
+        for organism in self.world.organisms:
             x, y = organism.get_location()
-            self.color_cell(x, y, "#%02x%02x%02x" % tuple([int(255 * color) for color in species.labels_colors[label]]))
+            self.color_cell(x, y, "#%02x%02x%02x" % tuple([int(255 * color) for color in species.labels_colors[species.organisms_labels[organism]]]))
             if organism is self.tracked_organism:
                 self.highlight_cell(x, y)
 
