@@ -107,9 +107,9 @@ class App:
         simulation = Simulation(
             self.main_frame,
             self.root,
-            n_organisms,
-            n_species,
-            seed
+            n_organisms=n_organisms,
+            n_species=n_species,
+            seed=seed
         )
         simulation.start()
 
