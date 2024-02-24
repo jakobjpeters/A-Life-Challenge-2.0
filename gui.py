@@ -118,6 +118,9 @@ class App:
 
 
 class Simulation:
+    """
+    Contains the interface for a running simulation.
+    """
     def __init__(
         self,
         main_frame,
