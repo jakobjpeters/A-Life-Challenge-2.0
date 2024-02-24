@@ -60,6 +60,12 @@ class Size(Enum):
     FOUR = 4
 
 
+class Terrain(Enum):
+    SAND = auto()
+    EARTH = auto()
+    WATER = auto()
+    ROCK  = auto()
+
 PREDATOR_PREY_TYPES = {EnergySource[predator]: [EnergySource[x] for x in prey] for predator, prey in (
     ("HERBIVORE", ["PHOTOSYNTHESIS"]),
     ("CARNIVORE", ["OMNIVORE", "CARNIVORE", "HERBIVORE"]),
@@ -302,6 +308,7 @@ class World():
         """
         self.seed = seed
         self.grid = [[None for __ in range(GRID_WIDTH)] for _ in range(GRID_HEIGHT)]
+        self.terrain_array = [[Terrain.EARTH for _ in range(GRID_WIDTH)] for _ in range(GRID_HEIGHT)]
         self.organisms = []
 
         if not n_species:
@@ -310,7 +317,7 @@ class World():
         for _ in range(n_organisms):
             genotype = choice(species).copy()
             for key in genotype:
-                genotype[key] = ((genotype[key] + round(gauss(sigma=SIGMA))) % GENE_LENGTH) + 1
+                genotype[key] = ((genotype[key] + round(gauss(mu=0, sigma=SIGMA))) % GENE_LENGTH) + 1
             while True:
                 x, y = randint(0, GRID_WIDTH - 1), randint(0, GRID_HEIGHT - 1)
                 if not self.grid[y][x]:
@@ -330,6 +337,9 @@ class World():
         """
         x, y = _organism.get_location()
         self.grid[y][x] = _organism
+
+    def get_cell_terrain(self, x, y):  
+        return self.terrain_array[y][x] 
 
     def remove_from_cell(self, _organism):
         """
