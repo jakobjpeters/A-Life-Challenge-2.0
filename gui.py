@@ -21,7 +21,6 @@ class App:
     def __init__(self, root):
         self.root = root
         root.title("A-Life Challenge 2.0")
-        self.world = None
 
         # window size
         screenwidth = root.winfo_screenwidth()
@@ -57,10 +56,6 @@ class App:
         self.label = tk.Label(self.main_frame, text="This is a little blurb about the simulation")
         self.label.place(anchor=tk.CENTER, relx=0.5, rely=0.1)
 
-        self.tracked_organism = None
-        self.paused = False
-        self.speed = 1.0
-
         self.main_frame.pack(fill=tk.BOTH, expand=True)
         self.button_frame.pack(fill=tk.BOTH, expand=True)
 
@@ -92,11 +87,59 @@ class App:
         self.organisms_slider.set(200)
         self.organisms_slider.pack()
 
-        start_button = tk.Button(self.new_frame, text="Start", command=self.start_button_command,
+        start_button = tk.Button(self.new_frame, text="Start", command=self.start_simulation,
                             width=30, height=2, bg="#5189f0", fg="#FFFFFF", activebackground="#5C89f0")
         start_button.pack()
 
-    def start_button_command(self):
+    def load(self):
+        """Load .world file and launch simulation."""
+        file = tkinter.filedialog.askopenfilename()
+        with open(file, 'rb') as f:
+            # FIXME: handle invalid files
+            world = pickle.load(f)
+        simulation = Simulation(self.main_frame, self.root, world=world)
+        simulation.start()
+
+    def start_simulation(self):
+        n_organisms = self.organisms_slider.get()
+        n_species = self.species_slider.get()
+        seed = int(self.seed_entry.get())
+        simulation = Simulation(
+            self.main_frame,
+            self.root,
+            n_organisms,
+            n_species,
+            seed
+        )
+        simulation.start()
+
+    def about_button_command(self):
+        print("About button command")
+
+
+class Simulation:
+    def __init__(
+        self,
+        main_frame,
+        root,
+        world=None,
+        n_organisms=None, 
+        n_species=None,
+        seed=None
+    ):
+        self.main_frame = main_frame
+        self.root = root
+        self.n_organisms = n_organisms
+        self.n_species = n_species
+        self.seed = seed
+        self.tracked_organism = None
+        self.paused = False
+        self.speed = 1.0
+        self.world = world
+        self.initial_world = None
+        self.canvas = None
+
+    def start(self):
         """
         Starts the simulation by instantiating a new `World`.
 
@@ -107,13 +150,12 @@ class App:
         """
 
         if self.world is None:
-            seed = int(self.seed_entry.get())
             self.world = World(
-                n_organisms=self.organisms_slider.get(),
-                n_species=self.species_slider.get(),
-                seed=seed
+                n_organisms=self.n_organisms,
+                n_species=self.n_species,
+                seed=self.seed
             )
-            random.seed(seed)
+            random.seed(self.seed)
             self.initial_world = copy.deepcopy(self.world)
         else:
             # use seed from saved simulation
@@ -302,14 +344,6 @@ class App:
         with open(fname, 'wb') as f:
             pickle.dump(self.initial_world, f)
 
-    def load(self):
-        """Load .world file and launch simulation."""
-        file = tkinter.filedialog.askopenfilename()
-        with open(file, 'rb') as f:
-            # FIXME: handle invalid files
-            self.world = pickle.load(f)
-        self.start_button_command()
-
     def faster(self):
         """Double simulation speed."""
         self.speed *= 0.5
@@ -329,9 +363,6 @@ class App:
             self.pause_button.config(text='Resume')
         else:
             self.pause_button.config(text='Pause')
-
-    def about_button_command(self):
-        print("About button command")
 
     def color_cell(self, x, y, color):
         """
