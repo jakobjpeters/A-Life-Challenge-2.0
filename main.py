@@ -1,6 +1,6 @@
 import textwrap
 
-from random import randint, choice, gauss
+from random import randint, choice, gauss, sample
 from math import ceil, copysign
 from enum import Enum, auto
 from species import Species
@@ -14,6 +14,7 @@ VISIBLE_RANGE = 5
 SIGMA = 1
 MUTATION_RATE = 50  # range from 0 to 100%
 PHOTOSYNTHESIS_RATE = 1.1
+
 
 class Relationships(Enum):
     NEUTRAL = auto()
@@ -45,7 +46,7 @@ class Skin(Enum):
 class Movement(Enum):
     STATIONARY = auto()
     BIPEDAL = auto()
-    QUADRIPEDAL = auto()
+    QUADRIPEDAL = auto()  # 2 chances at reproduction
 
 
 class Sleep(Enum):
@@ -140,7 +141,8 @@ class Organism():
     The `x` and `y` attributes indicate its position in the environment.
     An organism dies when its `energy_level` is less than or equal to `0`.
     """
-    def __init__(self, x, y, starting_energy_rate, is_day = True, genotype = {}):
+
+    def __init__(self, x, y, starting_energy_rate, is_day=True, genotype={}):
         """
         Instantiate an organism at the given `x` and `y` coordinates.
         """
@@ -301,16 +303,19 @@ class World():
         Instantiate a simulated environment and append each organism to its respective cell.
         """
         self.seed = seed
-        self.grid = [[None for __ in range(GRID_WIDTH)] for _ in range(GRID_HEIGHT)]
+        self.grid = [[None for __ in range(GRID_WIDTH)]
+                     for _ in range(GRID_HEIGHT)]
         self.organisms = []
 
         if not n_species:
             n_species = n_organisms
-        species = [{trait: randint(1, GENE_LENGTH) for trait in TRAITS} for _ in range(n_species)]
+        species = [{trait: randint(1, GENE_LENGTH)
+                    for trait in TRAITS} for _ in range(n_species)]
         for _ in range(n_organisms):
             genotype = choice(species).copy()
             for key in genotype:
-                genotype[key] = ((genotype[key] + round(gauss(sigma=SIGMA))) % GENE_LENGTH) + 1
+                genotype[key] = (
+                    (genotype[key] + round(gauss(sigma=SIGMA))) % GENE_LENGTH) + 1
             while True:
                 x, y = randint(0, GRID_WIDTH - 1), randint(0, GRID_HEIGHT - 1)
                 if not self.grid[y][x]:
@@ -320,7 +325,8 @@ class World():
         self.species = Species(self.organisms)
 
     def spawn_organism(self, x, y, starting_energy_rate, genotype):
-        _organism = Organism(x, y, starting_energy_rate, self.sun.is_day, genotype)
+        _organism = Organism(x, y, starting_energy_rate,
+                             self.sun.is_day, genotype)
         self.organisms.append(_organism)
         self.insert_to_cell(_organism)
 
@@ -338,6 +344,18 @@ class World():
         x, y = _organism.get_location()
         self.grid[y][x] = None
 
+    def matching_traits(self, organism_1, organism_2, trait, value):
+        """
+        returns a boolean for if two organims have the same matching phenotype
+
+        if organism_1.genome.phenotype[EnergySource] != EnergySource.PHOTOSYNTHESIS and organism_2.genome.phenotype[EnergySource] != EnergySource.PHOTOSYNTHESIS:
+        is now self.matching_traits(organism_1, organism_2, EnergySource, EnergySource.PHOTOSYNTHESIS)
+        """
+        if organism_1.genome.phenotype[trait] == organism_2.genome.phenotype[trait]:
+            if organism_1.genome.phenotype[trait] == value:
+                return True
+        return False
+
     def collide(self, organism_1, organism_2):
         """
         Handle the collision of two organisms by them reproducing,
@@ -346,16 +364,36 @@ class World():
         relationship = organism_1.meet(organism_2)
 
         if relationship == Relationships.NEUTRAL:
-            # both organisms have sexual reproduction
-            if organism_1.genome.phenotype[Reproduction] == Reproduction.SEXUAL and organism_2.genome.phenotype[
-                    Reproduction] == Reproduction.SEXUAL:
-                self.sexual_reproduce(organism_1, organism_2)
+            # both organisms have sexual reproduction and are not photosynthesizer
+            if not self.matching_traits(organism_1, organism_2, EnergySource, EnergySource.PHOTOSYNTHESIS):
+                if self.matching_traits(organism_1, organism_2, Reproduction, Reproduction.SEXUAL):
+                    if self.matching_traits(organism_1, organism_2, Movement, Movement.QUADRIPEDAL):
+                        # quadripeds reproduce twice
+                        self.sexual_reproduce(organism_1, organism_2)
+                    self.sexual_reproduce(organism_1, organism_2)
         elif relationship == Relationships.PREY:
-            organism_1.eat(organism_2)
-            self.remove_from_cell(organism_2)
-        elif relationship == Relationships.PREDATOR:
-            organism_2.eat(organism_1)
-            self.remove_from_cell(organism_1)
+            if self.defense_mechanism(organism_1, organism_2):
+                organism_1.eat(organism_2)
+                self.remove_from_cell(organism_2)
+        elif relationship == Relationships.PREDATOR:  # IS THIS EVER BEING CALLED???????
+            if self.defense_mechanism(organism_2, organism_1):
+                organism_2.eat(organism_1)
+                self.remove_from_cell(organism_1)
+
+    def defense_mechanism(self, predator, prey):
+        """
+        SHELL has 10% chance of surviving
+        QUILLS has 5% chance of surviving
+        """
+        prey_skin = prey.genome.phenotype[Skin]
+        if prey_skin == Skin.SHELL:
+            if randint(1, 100) < 10:
+                predator.energy_level /= 1.01
+                return False
+        if prey_skin == Skin.QUILLS:
+            if randint(1, 100) < 5:
+                return False
+        return True
 
     def reachable_cells(self, _organism, n):
         """
@@ -387,7 +425,8 @@ class World():
         if any(not _organism.can_reproduce or _organism.energy_level < _organism.size() for _organism in (organism_1, organism_2)):
             return
 
-        cells = list(self.empty_cells(organism_1, 1)) + list(self.empty_cells(organism_2, 1))
+        cells = list(self.empty_cells(organism_1, 1)) + \
+            list(self.empty_cells(organism_2, 1))
         if not cells:
             return
 
@@ -406,9 +445,98 @@ class World():
         # chance for a mutation to occur
         if randint(0, 100) < MUTATION_RATE:
             target_gene = choice(range(len(child_genotype)))
-            child_genotype[target_gene] = ((child_genotype[target_gene] + randint(-10, 10)) % MUTATION_RATE) + 1
-        new_genotype = {trait: value for trait, value in zip(TRAITS, child_genotype)}
+            child_genotype[target_gene] = (
+                (child_genotype[target_gene] + randint(-10, 10)) % MUTATION_RATE) + 1
+        new_genotype = {trait: value for trait,
+                        value in zip(TRAITS, child_genotype)}
         self.spawn_organism(x, y, 2, new_genotype)
+
+    def scatter_seeds(self, org):
+        """
+        method for photosynthesis organisms to reproduce
+        excludes organisms that reproduce asexually
+        """
+        stationary = org.genome.phenotype[Movement] == Movement.STATIONARY
+
+        if stationary:  # plant fills all empty cells in range with offpsring
+            cells = list(self.empty_cells(org, 2))
+            if not cells:
+                return
+
+            for cell in cells:
+                if self.grid[cell[0]][cell[1]] is None:
+                    child_genotype = org.get_genotype_values()
+                    target_gene = choice(range(len(child_genotype)))
+                    child_genotype[target_gene] = min(max(
+                        (child_genotype[target_gene] + randint(-10, 10)) % MUTATION_RATE, 1), GENE_LENGTH)
+                    new_genotype = {trait: value for trait,
+                                    value in zip(TRAITS, child_genotype)}
+                    self.spawn_organism(cell[0], cell[1], 1, new_genotype)
+                    org.metabolize()
+
+        else:  # non-stationary photosynthesizer searches nearby cells for photosynthesizer, reproduces if found
+            cells = list(self.reachable_cells(org, 1))
+            empty_cells = list(self.empty_cells(org, 1))
+            if not cells or not empty_cells:
+                return
+            # location of current organisms appears in reachable_cells
+            cells.remove((org.x, org.y))
+
+            for cell in cells:
+                if self.grid[cell[0]][cell[1]]:
+                    if self.grid[cell[0]][cell[1]].genome.phenotype[EnergySource] == EnergySource.PHOTOSYNTHESIS:
+
+                        genotype_1 = org.get_genotype_values()
+                        genotype_2 = self.grid[cell[0]
+                                               ][cell[1]].get_genotype_values()
+                        combined_genotype = list(zip(genotype_1, genotype_2))
+                        child_genotype = [choice(_) for _ in combined_genotype]
+
+                        # chance for a mutation to occur
+                        if randint(0, 100) < MUTATION_RATE:
+                            target_gene = choice(range(len(child_genotype)))
+                            child_genotype[target_gene] = (
+                                (child_genotype[target_gene] + randint(-10, 10)) % MUTATION_RATE) + 1
+                        new_genotype = {trait: value for trait,
+                                        value in zip(TRAITS, child_genotype)}
+
+                        x, y = choice(empty_cells)
+
+                        self.spawn_organism(x, y, 2, new_genotype)
+                        org.metabolize()
+                break
+
+    def asexual_reproduction(self, org):
+        """
+        only takes an organsim with asexual reproduction
+        searches empty cells and splits the organism evenly among the cells by size and energy_level
+        """
+        cells = list(self.empty_cells(org, 1))
+        if not cells:
+            return
+
+        # limited to splitting in up to 3 offspring
+        parent_size = org.genome.genotype[Size]
+        max_offspring = min(len(cells), 3)
+        cells = sample(cells, max_offspring)
+        new_sizes = (parent_size // max_offspring) % GENE_LENGTH + 1
+        new_energies = org.energy_level / (max_offspring + 1)
+
+        # offspring will populate empty cells
+        for cell in cells:
+            if self.grid[cell[0]][cell[1]] is None:
+                child_genotype = org.get_genotype_values()
+                child_genotype[5] = new_sizes
+                target_gene = choice(range(len(child_genotype)))
+                child_genotype[target_gene] = min(max(
+                    (child_genotype[target_gene] + randint(-10, 10)) % MUTATION_RATE, 1), GENE_LENGTH)
+                new_genotype = {trait: value for trait,
+                                value in zip(TRAITS, child_genotype)}
+                self.spawn_organism(
+                    cell[0], cell[1], new_energies, new_genotype)
+                # temporary, need a better way to split parent energy
+                org.energy_level = new_energies
+        # TODO: UPDATE PARENT SIZE AND ENERGY
 
     def move_organism(self, _organism, dx, dy):
         """
@@ -506,6 +634,11 @@ class World():
                 if _organism.alive and _organism.energy_level <= 0:
                     _organism.alive = False
                     self.remove_from_cell(_organism)
+                if self.frame % 3 == 0:  # added non-sexual reproduction here since self.organisms is being iterated through
+                    if _organism.genome.phenotype[Reproduction] == Reproduction.ASEXUAL:
+                        self.asexual_reproduction(_organism)
+                    elif _organism.genome.phenotype[EnergySource] == EnergySource.PHOTOSYNTHESIS:
+                        self.scatter_seeds(_organism)
 
         organisms = self.organisms.copy()
         self.organisms = []
@@ -531,11 +664,10 @@ class World():
             for cell in row:
                 if not cell:
                     grid_str += '[     ]'
-                elif len(cell) > 1:
-                    grid_str += '[Coll.]'
                 else:
-                    grid_str += str(cell)
+                    grid_str += f'[{str(id(cell))[-5:]}]'
             grid_str += '\n'
+        print("Number of organisms", len(self.organisms))
         return grid_str
 
 
