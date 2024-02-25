@@ -1,16 +1,18 @@
 import copy
+import math
 import pickle
 import random
 import tkinter as tk
 import tkinter.filedialog
 import time
-from main import GRID_HEIGHT, GRID_WIDTH, World
+from main import GRID_HEIGHT, GRID_WIDTH, World, EnergySource
+from enum import Enum, auto
 
 WIDTH = 800
 HEIGHT = 600
-CELL_SIZE = 8
+CELL_SIZE = 400 / GRID_WIDTH
 FPS_REFRESH_RATE = 1 # second
-CELL_COLOR = '#2f2f2f'
+
 
 class App:
     """
@@ -198,21 +200,17 @@ class Simulation:
         for y in range(GRID_HEIGHT):
             self.grid.append([])
             for x in range(GRID_WIDTH):
-                cell_size = 400 / GRID_WIDTH
-                _x, _y = cell_size * (x + 1), cell_size * (y + 1)
+                _x, _y = CELL_SIZE * (x + 1), CELL_SIZE * (y + 1)
                 rect = self.canvas.create_rectangle(
-                    _x, _y, _x + cell_size,
-                    _y + cell_size,
+                    _x,
+                    _y,
+                    _x + CELL_SIZE,
+                    _y + CELL_SIZE,
                     fill='',
                     outline='',
                 )
                 self.grid[y].append(rect)
-
-                # attach callback functions to cell when its clicked or hovered
-                self.canvas.tag_bind(rect, '<Enter>', lambda _, x=x, y=y: self.view_organism_details(x, y))
-                self.canvas.tag_bind(rect, '<Button-1>', lambda _, x=x, y=y: self.view_organism_details(x, y, clicked=True))
-                self.canvas.tag_bind(rect, '<Leave>', lambda _: self.clear_organism_details())
-
+                self.attach_callbacks(x, y)
 
     def set_up_left_panel(self):
         """
@@ -380,6 +378,38 @@ class Simulation:
         self.canvas.itemconfigure(self.grid[y][x], outline='yellow', width=3)
         self.canvas.tag_raise(self.grid[x][y])
 
+    def shape_cell(self, x, y, energy_source):
+        """
+        Set the cell's shape at x and y based on the energy_source.
+
+        Photosynthesizers: circle
+        Herbivore: triangle
+        Carnivore: rectangle
+        Omnivore: hexagon
+        """
+        cell = self.grid[y][x]
+        _x, _y = CELL_SIZE * (x + 1), CELL_SIZE * (y + 1)
+        match energy_source:
+            case EnergySource.PHOTOSYNTHESIS:
+                cell = self.canvas.create_oval(_x, _y, _x+CELL_SIZE, _y+CELL_SIZE)
+            case EnergySource.HERBIVORE:
+                # triangle
+                cell = self.canvas.create_polygon(_x, _y, _x+CELL_SIZE, _y, _x+(CELL_SIZE/2), _y+CELL_SIZE)
+            case EnergySource.CARNIVORE:
+                cell = self.canvas.create_rectangle(_x, _y, _x+CELL_SIZE, _y+CELL_SIZE)
+            case EnergySource.OMNIVORE:
+                # hexagon (used ChatGPT and trial and error -- math is hard)
+                angle = 360 / 6
+                vertices = []
+                for i in range(6):
+                    angle_rad = math.radians(angle * i)
+                    vertex_x = _x + CELL_SIZE * 0.577 * math.cos(angle_rad)
+                    vertex_y = _y + CELL_SIZE * 0.577 * math.sin(angle_rad)
+                    vertices.extend([vertex_x + (0.5*CELL_SIZE), vertex_y + (0.5)*CELL_SIZE])
+                cell = self.canvas.create_polygon(vertices)
+        self.grid[y][x] = cell
+        self.attach_callbacks(x, y)
+
     def render(self):
         """
         Changes the color of each cell to display that it's empty of contains an organism.
@@ -388,14 +418,22 @@ class Simulation:
         """
         for x in range(GRID_WIDTH):
             for y in range(GRID_HEIGHT):
-                self.color_cell(x, y, CELL_COLOR)
+                self.color_cell(x, y, '')  # by default cell is transparent
 
         species = self.world.species
         for organism in self.world.organisms:
             x, y = organism.get_location()
+            self.shape_cell(x, y, organism.genome.phenotype[EnergySource])
             self.color_cell(x, y, "#%02x%02x%02x" % tuple([int(255 * color) for color in species.labels_colors[species.organisms_labels[organism]]]))
             if organism is self.tracked_organism:
                 self.highlight_cell(x, y)
+
+    def attach_callbacks(self, x, y):
+        cell = self.grid[y][x]
+        # attach callback functions to cell when its clicked or hovered
+        self.canvas.tag_bind(cell, '<Enter>', lambda _, x=x, y=y: self.view_organism_details(x, y))
+        self.canvas.tag_bind(cell, '<Button-1>', lambda _, x=x, y=y: self.view_organism_details(x, y, clicked=True))
+        self.canvas.tag_bind(cell, '<Leave>', lambda _: self.clear_organism_details())
 
     def view_organism_details(self, x, y, clicked=False):
         """
