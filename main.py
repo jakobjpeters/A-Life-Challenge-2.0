@@ -456,7 +456,7 @@ class World():
 
         if stationary:  # plant fills all empty cells in range with offpsring
             cells = list(self.empty_cells(org, 2))
-            if not cells:
+            if not (cells and org.can_reproduce):
                 return
 
             for cell in cells:
@@ -508,7 +508,7 @@ class World():
         searches empty cells and splits the organism evenly among the cells by size and energy_level
         """
         cells = list(self.empty_cells(org, 1))
-        if not cells:
+        if not (cells and org.can_reproduce):
             return
 
         # limited to splitting in up to 3 offspring
