@@ -477,7 +477,7 @@ class World():
         else:  # non-stationary photosynthesizer searches nearby cells for photosynthesizer, reproduces if found
             cells = list(self.reachable_cells(org, 1))
             empty_cells = list(self.empty_cells(org, 1))
-            if not cells or not empty_cells:
+            if not (cells and empty_cells and org.can_reproduce):
                 return
             # location of current organisms appears in reachable_cells
             cells.remove((org.x, org.y))
