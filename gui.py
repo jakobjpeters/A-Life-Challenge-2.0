@@ -378,7 +378,7 @@ class Simulation:
         self.canvas.itemconfigure(self.grid[y][x], outline='yellow', width=3)
         self.canvas.tag_raise(self.grid[x][y])
 
-    def shape_cell(self, x, y, energy_source):
+    def shape_cell(self, x, y, energy_source, energy_level):
         """
         Set the cell's shape at x and y based on the energy_source.
 
@@ -407,6 +407,12 @@ class Simulation:
                     vertex_y = _y + CELL_SIZE * 0.577 * math.sin(angle_rad)
                     vertices.extend([vertex_x + (0.5*CELL_SIZE), vertex_y + (0.5)*CELL_SIZE])
                 cell = self.canvas.create_polygon(vertices)
+    
+        x1, y1, x2, y2 = self.canvas.bbox(cell)
+        center_x = (x1 + x2) / 2
+        center_y = (y1 + y2) / 2
+        scale_factor = 1.0 if energy_level > 30 else 0.7 + energy_level * 0.01
+        self.canvas.scale(cell, center_x, center_y, scale_factor, scale_factor)
         self.grid[y][x] = cell
         self.attach_callbacks(x, y)
 
@@ -423,7 +429,7 @@ class Simulation:
         species = self.world.species
         for organism in self.world.organisms:
             x, y = organism.get_location()
-            self.shape_cell(x, y, organism.genome.phenotype[EnergySource])
+            self.shape_cell(x, y, organism.genome.phenotype[EnergySource], organism.energy_level)
             self.color_cell(x, y, "#%02x%02x%02x" % tuple([int(255 * color) for color in species.labels_colors[species.organisms_labels[organism]]]))
             if organism is self.tracked_organism:
                 self.highlight_cell(x, y)
