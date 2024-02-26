@@ -304,8 +304,6 @@ class World():
                      for _ in range(GRID_HEIGHT)]
         self.organisms = []
 
-        if not n_species:
-            n_species = n_organisms
         species = [{trait: randint(1, GENE_LENGTH)
                     for trait in TRAITS} for _ in range(n_species)]
         for _ in range(n_organisms):

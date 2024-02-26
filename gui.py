@@ -75,10 +75,10 @@ class App:
         self.seed_entry.insert(0, 0)
         self.seed_entry.pack()
 
-        species_label = tk.Label(self.new_frame, text="\nNumber of species", font=('Times', 14), fg="#000000")
+        species_label = tk.Label(self.new_frame, text="\nSpecies variability", font=('Times', 14), fg="#000000")
         species_label.pack()
 
-        self.species_slider = tk.Scale(self.new_frame, from_=0, to=20, orient='horizontal')
+        self.species_slider = tk.Scale(self.new_frame, from_=1, to=20, orient='horizontal')
         self.species_slider.set(10)
         self.species_slider.pack()
 
