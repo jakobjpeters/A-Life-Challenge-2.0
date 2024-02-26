@@ -480,15 +480,6 @@ class Simulation:
             self.canvas.itemconfigure(self.grid[old_loc[1]][old_loc[0]], outline='')
             self.tracked_organism = None
 
-
-def darken_color(hex_color):
-    """Darken hex color"""
-    hex_color = hex_color.removeprefix('#')
-    value = int(hex_color, 16)
-    new_value = (value & 0x7e7e7e) >> 1 | (value & 0x808080)
-    new_color = f"#{hex(new_value).removeprefix('0x').ljust(6, '0')}"
-    return new_color
-
 if __name__ == "__main__":
     root = tk.Tk()
     app = App(root)
