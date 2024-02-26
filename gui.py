@@ -31,10 +31,12 @@ class App:
                                     (screenwidth - WIDTH) / 2, (screenheight - HEIGHT) / 2)
         root.geometry(alignstr)
 
+        self.main_menu()
+
+    def main_menu(self):
         # create frames for screens
-        self.main_frame = tk.Frame(root, bg='#ffffff')
-        self.button_frame = tk.Frame(
-            self.main_frame)
+        self.main_frame = tk.Frame(self.root, bg='#ffffff')
+        self.button_frame = tk.Frame(self.main_frame)
 
         # canvas for buttons
         button_canvas = tk.Canvas(
@@ -101,19 +103,29 @@ class App:
             world = pickle.load(f)
         simulation = Simulation(self.main_frame, self.root, world=world)
         simulation.start()
+        self.run_after_delay(simulation)
 
     def start_simulation(self):
         n_organisms = self.organisms_slider.get()
         n_species = self.species_slider.get()
         seed = int(self.seed_entry.get())
-        simulation = Simulation(
+        self.simulation = Simulation(
             self.main_frame,
             self.root,
             n_organisms=n_organisms,
             n_species=n_species,
             seed=seed
         )
-        simulation.start()
+        self.simulation.start()
+        self.run_after_delay()
+
+    def run_after_delay(self):
+        if self.simulation.running:
+            self.simulation.run()
+            self.root.after(int(1000 * self.simulation.speed), self.run_after_delay)
+        else:
+            self.simulation.window.pack_forget()
+            self.main_menu()
 
     def about_button_command(self):
         print("About button command")
@@ -139,6 +151,7 @@ class Simulation:
         self.seed = seed
         self.tracked_organism = None
         self.paused = False
+        self.running = True
         self.speed = 1.0
         self.world = world
         self.initial_world = None
@@ -166,13 +179,12 @@ class Simulation:
             # use seed from saved simulation
             random.seed(self.world.seed)
 
-    
         # Set up simulation windows
         self.main_frame.pack_forget()
-        window = self.set_up_left_panel()
-        window.pack(fill=tk.BOTH, expand=1)
-        subwindow = tk.PanedWindow(window, orient=tk.VERTICAL, bg='slategray')
-        window.add(subwindow)
+        self.window = self.set_up_left_panel()
+        self.window.pack(fill=tk.BOTH, expand=1)
+        subwindow = tk.PanedWindow(self.window, orient=tk.VERTICAL, bg='slategray')
+        self.window.add(subwindow)
         self.canvas = tk.Canvas(subwindow, width=400, height=400)
         self.set_up_canvas()
         subwindow.add(self.canvas)
@@ -181,10 +193,6 @@ class Simulation:
 
         # Display and run simulation
         self.render()
-        self.run_after_delay()
-
-    def run_after_delay(self):
-        self.root.after(int(1000 * self.speed), self.run)
 
     def set_up_canvas(self):
         """
@@ -236,6 +244,15 @@ class Simulation:
             height=2
         )
         self.pause_button.pack()
+
+        self.menu_button = tk.Button(
+            left_frame,
+            text='Main Menu',
+            command=self.main_menu,
+            width=30,
+            height=2
+        )
+        self.menu_button.pack()
 
         window.add(left_frame)
 
@@ -305,7 +322,7 @@ class Simulation:
         )
         self.organism_info_area.pack()
         return window
-    
+
     def zoom_canvas(self, factor):
         """
         Scale the canvas view by the given `factor`
@@ -337,8 +354,6 @@ class Simulation:
                 self.canvas.configure(bg='black')
             self.render()
 
-        self.run_after_delay()
-
     def save(self):
         """Save simulation as a .world file."""
         fname = tkinter.filedialog.asksaveasfilename(defaultextension='.world')
@@ -364,6 +379,9 @@ class Simulation:
             self.pause_button.config(text='Resume')
         else:
             self.pause_button.config(text='Pause')
+
+    def main_menu(self):
+        self.running = False
 
     def color_cell(self, x, y, color):
         """
@@ -498,6 +516,7 @@ if __name__ == "__main__":
     while True:
         root.update_idletasks()
         root.update()
+
         if False:
             counter += 1
             current = time.time()
