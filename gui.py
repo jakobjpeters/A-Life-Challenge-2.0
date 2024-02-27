@@ -7,10 +7,6 @@ import tkinter.filedialog
 import time
 from main import GRID_HEIGHT, GRID_WIDTH, World, EnergySource
 from enum import Enum, auto
-from matplotlib.figure import Figure
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-import matplotlib.pyplot as plt
-import numpy as np
 
 WIDTH = 800
 HEIGHT = 600
@@ -170,6 +166,7 @@ class Simulation:
             # use seed from saved simulation
             random.seed(self.world.seed)
 
+    
         # Set up simulation windows
         self.main_frame.pack_forget()
         window = self.set_up_left_panel()
@@ -179,13 +176,8 @@ class Simulation:
         self.canvas = tk.Canvas(subwindow, width=400, height=400)
         self.set_up_canvas()
         subwindow.add(self.canvas)
-
-        # bottom pane containing the graph
-        self.paned_window = tk.PanedWindow(root, orient=tk.HORIZONTAL)
-        self.paned_window.pack(fill=tk.BOTH, expand=True)
-        self.subpane = tk.PanedWindow(self.paned_window, orient=tk.VERTICAL)
-        self.paned_window.add(self.subpane)
-        self.create_graph_subpane(self.world.species.seeds)
+        bottom = tk.Label(subwindow, text="bottom pane")
+        subwindow.add(bottom)
 
         # Display and run simulation
         self.render()
@@ -219,32 +211,6 @@ class Simulation:
                 )
                 self.grid[y].append(rect)
                 self.attach_callbacks(x, y)
-
-    def create_graph_subpane(self, graph_data):
-        """
-        creates and updates the bottom graph showing the values of genotypes for each species
-        currently works by creating a new graph and clearing the old graph each time it is called
-        """
-        features = ["Reproduction", "EnergySource",
-                    "Skin", "Movement", "Sleep", "Size"]
-        plt.close()
-        plt.figure(figsize=(10, 6))
-        species_index = 0
-        for _species in graph_data:  # format data for graph and assign the color
-            _colors = self.world.species.labels_colors[species_index]
-            species_color = "#%02x%02x%02x" % tuple(
-                [int(255 * color) for color in _colors])
-            plt.plot(range(len(_species)), _species, label=f'{
-                     _species}', color=species_color)
-            species_index += 1
-        plt.xticks(range(len(_species)), features)
-        y_ticks = np.arange(0, 51, 10)
-        plt.yticks(y_ticks)
-        for widget in self.subpane.winfo_children():
-            widget.destroy()
-        canvas = FigureCanvasTkAgg(plt.gcf(), master=self.subpane)
-        canvas_widget = canvas.get_tk_widget()
-        canvas_widget.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 
     def set_up_left_panel(self):
         """
@@ -369,7 +335,6 @@ class Simulation:
                 self.canvas.configure(bg='white')
             else:
                 self.canvas.configure(bg='black')
-            self.create_graph_subpane(self.world.species.seeds)
             self.render()
 
         self.run_after_delay()
