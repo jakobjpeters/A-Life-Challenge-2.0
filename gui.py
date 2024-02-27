@@ -20,7 +20,6 @@ WATER_COLOR = '#00008b' # dark blue
 ROCK_COLOR = '#808080' #grey
 
 TERRAIN_DICTIONARY_str = {"Terrain.WATER": WATER_COLOR, "Terrain.ROCK":ROCK_COLOR, "Terrain.SAND":SAND_COLOR, "Terrain.EARTH":EARTH_COLOR}
-TERRAIN_DICTIONARY = {Terrain.WATER: WATER_COLOR, Terrain.ROCK:ROCK_COLOR, Terrain.SAND:SAND_COLOR, Terrain.EARTH:EARTH_COLOR}
 TERRAIN_ARRAY = [[Terrain.EARTH for _ in range(GRID_WIDTH)] for _ in range(GRID_HEIGHT)]
 
 class App:
@@ -167,12 +166,9 @@ class App:
         Allows user to click on and select terrain.
         """
         if clicked:
-            #terrain_dictionary = {"Terrain.WATER": WATER_COLOR, "Terrain.ROCK":ROCK_COLOR, "Terrain.SAND":SAND_COLOR, "Terrain.EARTH":EARTH_COLOR}
-            terrrain_color = TERRAIN_DICTIONARY_str[selected_terrain.get()]
-            self.canvas.itemconfigure(self.terrain_grid[y][x], fill=terrrain_color, outline='')
+            terrain_color = TERRAIN_DICTIONARY_str[selected_terrain.get()]
+            self.canvas.itemconfigure(self.terrain_grid[y][x], fill=terrain_color, outline='')
             TERRAIN_ARRAY[y][x] = selected_terrain.get()
-            #self.terrain_array[y][x] = selected_terrain# TERRAIN_DICTIONARY[selected_terrain.get()] 
-
 
 
     def load(self):
