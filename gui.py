@@ -226,28 +226,43 @@ class Simulation:
         creates and updates the bottom graph showing the values of genotypes for each species
         currently works by creating a new graph and clearing the old graph each time it is called
         """
-        features = ["Reproduction", "EnergySource",
-                    "Skin", "Movement", "Sleep", "Size"]
-        plt.clf()
-        plt.close()
-        plt.figure(figsize=(10, 6))
+        x_labels = ["Reproduction", "EnergySource", "Skin", "Movement", "Sleep", "Size"]
         species_index = 0
-        for _species in graph_data:  # format data for graph and assign the color
+
+        if not hasattr(self, 'ax'):
+            # sets the axes on the first call
+            self.ax = plt.figure(figsize=(10, 6)).add_subplot(111)
+            self.lines = []
+
+            self.ax.set_xticks(range(len(x_labels)))
+            self.ax.set_xticklabels(x_labels)
+            y_ticks = list(range(0, 51, 10))
+            self.ax.set_yticks(y_ticks)
+
+            for widget in self.subpane.winfo_children():
+                widget.destroy()
+
+            canvas = FigureCanvasTkAgg(plt.gcf(), master=self.subpane)
+            canvas_widget = canvas.get_tk_widget()
+            canvas_widget.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+
+        # redraw the lines after each frame
+        for line in self.lines:
+            line.remove()
+        self.lines.clear()
+        for _ in graph_data:
+            line, = self.ax.plot([], [], color='red')
+            self.lines.append(line)
+            
+        for species, line in zip(graph_data, self.lines):
+            # add data to the lines based on species genotype and color
             _colors = self.world.species.labels_colors[species_index]
-            species_color = "#%02x%02x%02x" % tuple(
-                [int(255 * color) for color in _colors])
-            plt.plot(range(len(_species)), _species, label=f'{
-                     _species}', color=species_color)
+            species_color = "#%02x%02x%02x" % tuple([int(255 * color) for color in _colors])
+            line.set_data(range(len(species)), species)
+            line.set_color(species_color)
             species_index += 1
-        plt.xticks(range(len(_species)), features)
-        #y_ticks = np.arange(0, 51, 10)
-        y_ticks = list(range(0, 51, 10))
-        plt.yticks(y_ticks)
-        for widget in self.subpane.winfo_children():
-            widget.destroy()
-        canvas = FigureCanvasTkAgg(plt.gcf(), master=self.subpane)
-        canvas_widget = canvas.get_tk_widget()
-        canvas_widget.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+
+        plt.gcf().canvas.draw()
 
     def set_up_left_panel(self):
         """
