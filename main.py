@@ -515,7 +515,8 @@ class World():
         parent_size = org.genome.genotype[Size]
         max_offspring = min(len(cells), 3)
         cells = sample(cells, max_offspring)
-        new_sizes = (parent_size // max_offspring) % GENE_LENGTH + 1
+        new_sizes = (parent_size // max_offspring) % GENE_LENGTH
+        new_sizes += 1 if new_sizes == 0 else 0
         new_energies = org.energy_level / (max_offspring + 1)
 
         # offspring will populate empty cells
@@ -523,9 +524,10 @@ class World():
             if self.grid[cell[0]][cell[1]] is None:
                 child_genotype = org.get_genotype_values()
                 child_genotype[5] = new_sizes
-                target_gene = choice(range(len(child_genotype)))
-                child_genotype[target_gene] = min(max(
-                    (child_genotype[target_gene] + randint(-10, 10)) % MUTATION_RATE, 1), GENE_LENGTH)
+                target_gene = choice(range(len(child_genotype) - 1)) # asexual size wont mutate
+                mutation_value = (child_genotype[target_gene] + randint(-20, 20)) % GENE_LENGTH
+                mutation_value += 1 if mutation_value == 0 else 0
+                child_genotype[target_gene] = mutation_value
                 new_genotype = {trait: value for trait,
                                 value in zip(TRAITS, child_genotype)}
                 self.spawn_organism(
