@@ -143,7 +143,7 @@ class Organism():
     An organism dies when its `energy_level` is less than or equal to `0`.
     """
 
-    def __init__(self, x, y, starting_energy_rate, is_day=True, genotype={}):
+    def __init__(self, x, y, starting_energy_rate, generation, is_day=True, genotype={}):
         """
         Instantiate an organism at the given `x` and `y` coordinates.
         """
@@ -153,6 +153,7 @@ class Organism():
         self.awake = (self.genome.phenotype[Sleep] == Sleep.DIURNAL) == is_day
         self.alive = True
         self.can_reproduce = False
+        self.generation = generation
 
     def update_location(self, x, y):
         """
@@ -256,6 +257,7 @@ class Organism():
         attributes += f'  awake:         {self.awake}\n'
         attributes += f'  position:      x: {self.x}, y: {self.y}\n'
         attributes += f'  energy_level:  {self.energy_level:.1f}\n'
+        attributes += f'  generation:  {self.generation}\n'
         attributes += f'  genome:\n'
         attributes += f'{textwrap.indent(str(self.genome), "    ")}'
         return attributes
@@ -304,8 +306,6 @@ class World():
                      for _ in range(GRID_HEIGHT)]
         self.organisms = []
 
-        if not n_species:
-            n_species = n_organisms
         species = [{trait: randint(1, GENE_LENGTH)
                     for trait in TRAITS} for _ in range(n_species)]
         for _ in range(n_organisms):
@@ -316,13 +316,13 @@ class World():
             while True:
                 x, y = randint(0, GRID_WIDTH - 1), randint(0, GRID_HEIGHT - 1)
                 if not self.grid[y][x]:
-                    self.spawn_organism(x, y, STARTING_ENERGY_RATE, genotype)
+                    self.spawn_organism(x, y, STARTING_ENERGY_RATE, 1, genotype)
                     break
 
         self.species = Species(self.organisms)
 
-    def spawn_organism(self, x, y, starting_energy_rate, genotype):
-        _organism = Organism(x, y, starting_energy_rate,
+    def spawn_organism(self, x, y, generation, starting_energy_rate, genotype):
+        _organism = Organism(x, y, generation, starting_energy_rate,
                              self.sun.is_day, genotype)
         self.organisms.append(_organism)
         self.insert_to_cell(_organism)
@@ -445,7 +445,9 @@ class World():
                 (child_genotype[target_gene] + randint(-10, 10)) % MUTATION_RATE) + 1
         new_genotype = {trait: value for trait,
                         value in zip(TRAITS, child_genotype)}
-        self.spawn_organism(x, y, 2, new_genotype)
+        
+        generation = max(organism_1.generation, organism_2.generation) + 1
+        self.spawn_organism(x, y, 2, generation, new_genotype)
 
     def scatter_seeds(self, org):
         """
@@ -467,13 +469,13 @@ class World():
                         (child_genotype[target_gene] + randint(-10, 10)) % MUTATION_RATE, 1), GENE_LENGTH)
                     new_genotype = {trait: value for trait,
                                     value in zip(TRAITS, child_genotype)}
-                    self.spawn_organism(cell[0], cell[1], 1, new_genotype)
+                    self.spawn_organism(cell[0], cell[1], 1, org.generation + 1, new_genotype)
                     org.metabolize()
 
         else:  # non-stationary photosynthesizer searches nearby cells for photosynthesizer, reproduces if found
             cells = list(self.reachable_cells(org, 1))
             empty_cells = list(self.empty_cells(org, 1))
-            if not cells or not empty_cells:
+            if not (cells and empty_cells and org.can_reproduce):
                 return
             # location of current organisms appears in reachable_cells
             cells.remove((org.x, org.y))
@@ -481,10 +483,9 @@ class World():
             for cell in cells:
                 if self.grid[cell[0]][cell[1]]:
                     if self.grid[cell[0]][cell[1]].genome.phenotype[EnergySource] == EnergySource.PHOTOSYNTHESIS:
-
+                        org_2 = self.grid[cell[0]][cell[1]]
                         genotype_1 = org.get_genotype_values()
-                        genotype_2 = self.grid[cell[0]
-                                               ][cell[1]].get_genotype_values()
+                        genotype_2 = org_2.get_genotype_values()
                         combined_genotype = list(zip(genotype_1, genotype_2))
                         child_genotype = [choice(_) for _ in combined_genotype]
 
@@ -498,7 +499,8 @@ class World():
 
                         x, y = choice(empty_cells)
 
-                        self.spawn_organism(x, y, 2, new_genotype)
+                        generation = max(org.generation, org_2.generation) + 1
+                        self.spawn_organism(x, y, 2, generation, new_genotype)
                         org.metabolize()
                 break
 
@@ -515,7 +517,8 @@ class World():
         parent_size = org.genome.genotype[Size]
         max_offspring = min(len(cells), 3)
         cells = sample(cells, max_offspring)
-        new_sizes = (parent_size // max_offspring) % GENE_LENGTH + 1
+        new_sizes = (parent_size // max_offspring) % GENE_LENGTH
+        new_sizes += 1 if new_sizes == 0 else 0
         new_energies = org.energy_level / (max_offspring + 1)
 
         # offspring will populate empty cells
@@ -523,13 +526,14 @@ class World():
             if self.grid[cell[0]][cell[1]] is None:
                 child_genotype = org.get_genotype_values()
                 child_genotype[5] = new_sizes
-                target_gene = choice(range(len(child_genotype)))
-                child_genotype[target_gene] = min(max(
-                    (child_genotype[target_gene] + randint(-10, 10)) % MUTATION_RATE, 1), GENE_LENGTH)
+                target_gene = choice(range(len(child_genotype) - 1)) # asexual size wont mutate
+                mutation_value = (child_genotype[target_gene] + randint(-20, 20)) % GENE_LENGTH
+                mutation_value += 1 if mutation_value == 0 else 0
+                child_genotype[target_gene] = mutation_value
                 new_genotype = {trait: value for trait,
                                 value in zip(TRAITS, child_genotype)}
                 self.spawn_organism(
-                    cell[0], cell[1], new_energies, new_genotype)
+                    cell[0], cell[1], new_energies, org.generation + 1, new_genotype)
                 # temporary, need a better way to split parent energy
                 org.energy_level = new_energies
         # TODO: UPDATE PARENT SIZE AND ENERGY

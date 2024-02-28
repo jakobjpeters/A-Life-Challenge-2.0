@@ -7,6 +7,10 @@ import tkinter.filedialog
 import time
 from main import GRID_HEIGHT, GRID_WIDTH, World, EnergySource
 from enum import Enum, auto
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import matplotlib.pyplot as plt
+import numpy as np
 
 WIDTH = 800
 HEIGHT = 600
@@ -70,30 +74,34 @@ class App:
         self.new_frame = tk.Frame(self.main_frame, bg='#3E3E3E')
         self.new_frame.pack(fill=tk.BOTH, expand=True)
 
-        seed_label = tk.Label(self.new_frame, text="\nRandom seed", font=('Times', 14), fg="#000000")
-        seed_label.pack()
+        button_canvas = tk.Canvas(
+            self.new_frame, width=250, height=500, bg='SystemButtonFace', highlightthickness=0)
+        button_canvas.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
-        self.seed_entry = tk.Entry(self.new_frame, validate='all', validatecommand=(self.new_frame.register(lambda s: str.isdigit(s) or s == ''), '%P'))
+        seed_label = tk.Label(button_canvas, text="\nRandom seed", font=('Times', 14), bg='SystemButtonFace')
+        seed_label.place(relx=0.5, rely=0.1, anchor=tk.CENTER)
+
+        self.seed_entry = tk.Entry(button_canvas, validate='all', validatecommand=(self.new_frame.register(lambda s: str.isdigit(s) or s == ''), '%P'))
         self.seed_entry.insert(0, 0)
-        self.seed_entry.pack()
+        self.seed_entry.place(relx=0.5, rely=0.2, anchor=tk.CENTER)
 
-        species_label = tk.Label(self.new_frame, text="\nNumber of species", font=('Times', 14), fg="#000000")
-        species_label.pack()
+        species_label = tk.Label(button_canvas, text="\nSpecies variability", font=('Times', 14), bg='SystemButtonFace')
+        species_label.place(relx=0.5, rely=0.35, anchor=tk.CENTER)
 
-        self.species_slider = tk.Scale(self.new_frame, from_=0, to=20, orient='horizontal')
+        self.species_slider = tk.Scale(button_canvas, from_=1, to=20, orient='horizontal')
         self.species_slider.set(10)
-        self.species_slider.pack()
+        self.species_slider.place(relx=0.5, rely=0.45, anchor=tk.CENTER)
 
-        organisms_label = tk.Label(self.new_frame, text="\nNumber of organisms", font=('Times', 14), fg="#000000")
-        organisms_label.pack()
+        organisms_label = tk.Label(button_canvas, text="\nNumber of organisms", font=('Times', 14), bg='SystemButtonFace')
+        organisms_label.place(relx=0.5, rely=0.6, anchor=tk.CENTER)
 
-        self.organisms_slider = tk.Scale(self.new_frame, from_=0, to=400, orient='horizontal')
+        self.organisms_slider = tk.Scale(button_canvas, from_=0, to=400, orient='horizontal')
         self.organisms_slider.set(200)
-        self.organisms_slider.pack()
+        self.organisms_slider.place(relx=0.5, rely=0.7, anchor=tk.CENTER)
 
-        start_button = tk.Button(self.new_frame, text="Start", command=self.start_simulation,
+        start_button = tk.Button(button_canvas, text="Start", command=self.start_simulation,
                             width=30, height=2, bg="#5189f0", fg="#FFFFFF", activebackground="#5C89f0")
-        start_button.pack()
+        start_button.place(relx=0.5, rely=0.9, anchor=tk.CENTER)
 
     def load(self):
         """Load .world file and launch simulation."""
@@ -188,8 +196,13 @@ class Simulation:
         self.canvas = tk.Canvas(subwindow, width=400, height=400)
         self.set_up_canvas()
         subwindow.add(self.canvas)
-        bottom = tk.Label(subwindow, text="bottom pane")
-        subwindow.add(bottom)
+
+        # bottom pane containing the graph
+        self.paned_window = tk.PanedWindow(root, orient=tk.HORIZONTAL)
+        self.paned_window.pack(fill=tk.BOTH, expand=True)
+        self.subpane = tk.PanedWindow(self.paned_window, orient=tk.VERTICAL)
+        self.paned_window.add(self.subpane)
+        self.create_graph_subpane(self.world.species.seeds)
 
         # Display and run simulation
         self.render()
@@ -219,6 +232,49 @@ class Simulation:
                 )
                 self.grid[y].append(rect)
                 self.attach_callbacks(x, y)
+
+    def create_graph_subpane(self, graph_data):
+        """
+        creates and updates the bottom graph showing the values of genotypes for each species
+        currently works by creating a new graph and clearing the old graph each time it is called
+        """
+        x_labels = ["Reproduction", "EnergySource", "Skin", "Movement", "Sleep", "Size"]
+        species_index = 0
+
+        if not hasattr(self, 'ax'):
+            # sets the axes on the first call
+            self.ax = plt.figure(figsize=(10, 6)).add_subplot(111)
+            self.lines = []
+
+            self.ax.set_xticks(range(len(x_labels)))
+            self.ax.set_xticklabels(x_labels)
+            y_ticks = list(range(0, 51, 10))
+            self.ax.set_yticks(y_ticks)
+
+            for widget in self.subpane.winfo_children():
+                widget.destroy()
+
+            canvas = FigureCanvasTkAgg(plt.gcf(), master=self.subpane)
+            canvas_widget = canvas.get_tk_widget()
+            canvas_widget.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+
+        # redraw the lines after each frame
+        for line in self.lines:
+            line.remove()
+        self.lines.clear()
+        for _ in graph_data:
+            line, = self.ax.plot([], [], color='red')
+            self.lines.append(line)
+            
+        for species, line in zip(graph_data, self.lines):
+            # add data to the lines based on species genotype and color
+            _colors = self.world.species.labels_colors[species_index]
+            species_color = "#%02x%02x%02x" % tuple([int(255 * color) for color in _colors])
+            line.set_data(range(len(species)), species)
+            line.set_color(species_color)
+            species_index += 1
+
+        plt.gcf().canvas.draw()
 
     def set_up_left_panel(self):
         """
@@ -352,6 +408,7 @@ class Simulation:
                 self.canvas.configure(bg='white')
             else:
                 self.canvas.configure(bg='black')
+            self.create_graph_subpane(self.world.species.seeds)
             self.render()
 
     def save(self):
@@ -497,15 +554,6 @@ class Simulation:
             old_loc = self.tracked_organism.get_location()
             self.canvas.itemconfigure(self.grid[old_loc[1]][old_loc[0]], outline='')
             self.tracked_organism = None
-
-
-def darken_color(hex_color):
-    """Darken hex color"""
-    hex_color = hex_color.removeprefix('#')
-    value = int(hex_color, 16)
-    new_value = (value & 0x7e7e7e) >> 1 | (value & 0x808080)
-    new_color = f"#{hex(new_value).removeprefix('0x').ljust(6, '0')}"
-    return new_color
 
 if __name__ == "__main__":
     root = tk.Tk()
