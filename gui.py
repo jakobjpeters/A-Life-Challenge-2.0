@@ -5,7 +5,7 @@ import random
 import tkinter as tk
 import tkinter.filedialog
 import time
-from main import GRID_HEIGHT, GRID_WIDTH, World, EnergySource
+from main import GRID_HEIGHT, GRID_WIDTH, World, EnergySource, Terrain
 from enum import Enum, auto
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg

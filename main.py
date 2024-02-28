@@ -62,6 +62,13 @@ class Size(Enum):
     FOUR = 4
 
 
+class Terrain(Enum):
+    SAND = auto()   
+    EARTH = auto()  
+    WATER = auto()  
+    ROCK  = auto()   
+
+
 PREDATOR_PREY_TYPES = {EnergySource[predator]: [EnergySource[x] for x in prey] for predator, prey in (
     ("HERBIVORE", ["PHOTOSYNTHESIS"]),
     ("CARNIVORE", ["OMNIVORE", "CARNIVORE", "HERBIVORE"]),
