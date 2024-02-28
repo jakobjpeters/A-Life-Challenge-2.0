@@ -17,6 +17,13 @@ HEIGHT = 600
 CELL_SIZE = 400 / GRID_WIDTH
 FPS_REFRESH_RATE = 1 # second
 
+EARTH_COLOR = '#556b2f' #dark olive green
+SAND_COLOR = '#e9d66b' #dark aleride yellow
+WATER_COLOR = '#00008b' # dark blue
+ROCK_COLOR = '#808080' #grey
+
+TERRAIN_DICTIONARY = {"Terrain.WATER": WATER_COLOR, "Terrain.ROCK":ROCK_COLOR, "Terrain.SAND":SAND_COLOR, "Terrain.EARTH":EARTH_COLOR}
+TERRAIN_ARRAY = [[Terrain.EARTH for _ in range(GRID_WIDTH)] for _ in range(GRID_HEIGHT)]
 
 class App:
     """
@@ -102,6 +109,10 @@ class App:
         start_button = tk.Button(button_canvas, text="Start", command=self.start_simulation,
                             width=30, height=2, bg="#5189f0", fg="#FFFFFF", activebackground="#5C89f0")
         start_button.place(relx=0.5, rely=0.9, anchor=tk.CENTER)
+        
+        customize_button = tk.Button(button_canvas, text="Customize Terrain", command=self.start_simulation,
+                                 width=30, height=1)
+        customize_button.place(relx=0.5, rely=0.97, anchor=tk.CENTER)
 
     def load(self):
         """Load .world file and launch simulation."""
