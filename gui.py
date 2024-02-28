@@ -37,8 +37,7 @@ class App:
 
         # create frames for screens
         self.main_frame = tk.Frame(root, bg='#ffffff')
-        self.button_frame = tk.Frame(
-            self.main_frame)
+        self.button_frame = tk.Frame(self.main_frame)
 
         # canvas for buttons
         button_canvas = tk.Canvas(
@@ -72,30 +71,34 @@ class App:
         self.new_frame = tk.Frame(self.main_frame, bg='#3E3E3E')
         self.new_frame.pack(fill=tk.BOTH, expand=True)
 
-        seed_label = tk.Label(self.new_frame, text="\nRandom seed", font=('Times', 14), fg="#000000")
-        seed_label.pack()
+        button_canvas = tk.Canvas(
+            self.new_frame, width=250, height=500, bg='SystemButtonFace', highlightthickness=0)
+        button_canvas.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
-        self.seed_entry = tk.Entry(self.new_frame, validate='all', validatecommand=(self.new_frame.register(lambda s: str.isdigit(s) or s == ''), '%P'))
+        seed_label = tk.Label(button_canvas, text="\nRandom seed", font=('Times', 14), bg='SystemButtonFace')
+        seed_label.place(relx=0.5, rely=0.1, anchor=tk.CENTER)
+
+        self.seed_entry = tk.Entry(button_canvas, validate='all', validatecommand=(self.new_frame.register(lambda s: str.isdigit(s) or s == ''), '%P'))
         self.seed_entry.insert(0, 0)
-        self.seed_entry.pack()
+        self.seed_entry.place(relx=0.5, rely=0.2, anchor=tk.CENTER)
 
-        species_label = tk.Label(self.new_frame, text="\nNumber of species", font=('Times', 14), fg="#000000")
-        species_label.pack()
+        species_label = tk.Label(button_canvas, text="\nSpecies variability", font=('Times', 14), bg='SystemButtonFace')
+        species_label.place(relx=0.5, rely=0.35, anchor=tk.CENTER)
 
-        self.species_slider = tk.Scale(self.new_frame, from_=0, to=20, orient='horizontal')
+        self.species_slider = tk.Scale(button_canvas, from_=1, to=20, orient='horizontal')
         self.species_slider.set(10)
-        self.species_slider.pack()
+        self.species_slider.place(relx=0.5, rely=0.45, anchor=tk.CENTER)
 
-        organisms_label = tk.Label(self.new_frame, text="\nNumber of organisms", font=('Times', 14), fg="#000000")
-        organisms_label.pack()
+        organisms_label = tk.Label(button_canvas, text="\nNumber of organisms", font=('Times', 14), bg='SystemButtonFace')
+        organisms_label.place(relx=0.5, rely=0.6, anchor=tk.CENTER)
 
-        self.organisms_slider = tk.Scale(self.new_frame, from_=0, to=400, orient='horizontal')
+        self.organisms_slider = tk.Scale(button_canvas, from_=0, to=400, orient='horizontal')
         self.organisms_slider.set(200)
-        self.organisms_slider.pack()
+        self.organisms_slider.place(relx=0.5, rely=0.7, anchor=tk.CENTER)
 
-        start_button = tk.Button(self.new_frame, text="Start", command=self.start_simulation,
+        start_button = tk.Button(button_canvas, text="Start", command=self.start_simulation,
                             width=30, height=2, bg="#5189f0", fg="#FFFFFF", activebackground="#5C89f0")
-        start_button.pack()
+        start_button.place(relx=0.5, rely=0.9, anchor=tk.CENTER)
 
     def load(self):
         """Load .world file and launch simulation."""
@@ -532,15 +535,6 @@ class Simulation:
             old_loc = self.tracked_organism.get_location()
             self.canvas.itemconfigure(self.grid[old_loc[1]][old_loc[0]], outline='')
             self.tracked_organism = None
-
-
-def darken_color(hex_color):
-    """Darken hex color"""
-    hex_color = hex_color.removeprefix('#')
-    value = int(hex_color, 16)
-    new_value = (value & 0x7e7e7e) >> 1 | (value & 0x808080)
-    new_color = f"#{hex(new_value).removeprefix('0x').ljust(6, '0')}"
-    return new_color
 
 if __name__ == "__main__":
     root = tk.Tk()
