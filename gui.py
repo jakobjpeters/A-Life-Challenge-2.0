@@ -42,6 +42,7 @@ class App:
         self.main_frame = tk.Frame(self.root, bg='#ffffff')
         self.button_frame = tk.Frame(self.main_frame)
 
+        # removes the graph and left pane from the main menu
         for _pane in self.root.winfo_children():
             if isinstance(_pane, tk.PanedWindow):
                 _pane.destroy()
