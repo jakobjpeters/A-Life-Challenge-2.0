@@ -22,8 +22,8 @@ SAND_COLOR = '#e9d66b' #dark aleride yellow
 WATER_COLOR = '#00008b' # dark blue
 ROCK_COLOR = '#808080' #grey
 
-TERRAIN_DICTIONARY = {"Terrain.WATER": WATER_COLOR, "Terrain.ROCK":ROCK_COLOR, "Terrain.SAND":SAND_COLOR, "Terrain.EARTH":EARTH_COLOR}
-TERRAIN_ARRAY = [[Terrain.EARTH for _ in range(GRID_WIDTH)] for _ in range(GRID_HEIGHT)]
+TERRAIN_DICTIONARY = {"Terrain.WATER":WATER_COLOR, "Terrain.ROCK":ROCK_COLOR, "Terrain.SAND":SAND_COLOR, "Terrain.EARTH":EARTH_COLOR}
+
 
 class App:
     """
@@ -34,6 +34,10 @@ class App:
     def __init__(self, root):
         self.root = root
         root.title("A-Life Challenge 2.0")
+
+        #terrain customization variables
+        self.terrain_selected = False
+        self.terrain_array = None
 
         # window size
         screenwidth = root.winfo_screenwidth()
@@ -110,7 +114,7 @@ class App:
                             width=30, height=2, bg="#5189f0", fg="#FFFFFF", activebackground="#5C89f0")
         start_button.place(relx=0.5, rely=0.9, anchor=tk.CENTER)
         
-        customize_button = tk.Button(button_canvas, text="Customize Terrain", command=self.start_simulation,
+        customize_button = tk.Button(button_canvas, text="Customize Terrain", command=self.customize_terrain_command,
                                  width=30, height=1)
         customize_button.place(relx=0.5, rely=0.97, anchor=tk.CENTER)
 
@@ -135,8 +139,68 @@ class App:
             n_species=n_species,
             seed=seed
         )
+        if self.terrain_selected == True:
+            self.simulation.terrain_selection = True
+            self.simulation.terrain_array = self.terrain_array
         self.simulation.start()
         self.run_after_delay()
+    
+    def customize_terrain_command(self):
+        """
+        Enables user to choose terrain features.
+        """                    
+        self.terrain_selected = True
+        self.terrain_array = [["Terrain.EARTH" for _ in range(GRID_WIDTH)] for _ in range(GRID_HEIGHT)]
+
+        # Select terrain types.
+        self.canvas = tk.Canvas(self.main_frame, width=800, height=600)
+                           
+        self.selected_option = tk.StringVar()
+        self.terrain_button = tk.Radiobutton(self.canvas, text='Earth', variable=self.selected_option , value = "Terrain.EARTH")
+        self.terrain_button.place(relx=0.65, rely=0.2, anchor=tk.W)
+
+        self.terrain_button = tk.Radiobutton(self.canvas, text='Water', variable=self.selected_option , value = "Terrain.WATER")                
+        self.terrain_button.place(relx=0.65, rely=0.3, anchor=tk.W)
+
+        self.terrain_button = tk.Radiobutton(self.canvas, text='Rock', variable=self.selected_option , value = "Terrain.ROCK")           
+        self.terrain_button.place(relx=0.65, rely=0.4, anchor=tk.W)
+
+        self.terrain_button = tk.Radiobutton(self.canvas, text='Sand', variable=self.selected_option , value = "Terrain.SAND")                     
+        self.terrain_button.place(relx=0.65, rely=0.5, anchor=tk.W)
+
+        self.organism_info_area = tk.Label(self.main_frame, justify=tk.LEFT, anchor='w', font='TkFixedFont', text='Select Terrain Type')
+        self.organism_info_area.place(anchor=tk.N, relx=0.9, rely=0.0, width=500, height=100)
+
+        customize_button = tk.Button(self.canvas, text="Select Parameters", command=self.start_simulation,
+                                 width=30, height=2)
+        customize_button.place(relx=0.5, rely=0.8, anchor=tk.CENTER)
+
+        self.canvas.pack()
+
+        self.terrain_grid = []
+        for y in range(GRID_HEIGHT):
+            self.terrain_grid.append([]) 
+            for x in range(GRID_WIDTH):
+                _x, _y = CELL_SIZE * (x + 1), CELL_SIZE * (y + 1)
+                rect = self.canvas.create_rectangle(
+                    _x, _y, _x + CELL_SIZE,
+                    _y + CELL_SIZE,
+                    fill=EARTH_COLOR,
+                    outline='',
+                )
+                self.terrain_grid[y].append(rect)
+                self.canvas.tag_bind(rect, '<Button-1>', lambda _, x=x, y=y: self.terrain_selection(x, y, self.selected_option ,clicked=True))
+
+        self.canvas.pack()
+
+    def terrain_selection(self, x, y, selected_terrain, clicked=False):
+        """
+        Allows user to click on and select terrain.
+        """
+        if clicked:
+            terrain_color = TERRAIN_DICTIONARY[selected_terrain.get()]
+            self.canvas.itemconfigure(self.terrain_grid[y][x], fill=terrain_color, outline='')
+            self.terrain_array[y][x] = selected_terrain.get()
 
     def run_after_delay(self):
         if self.simulation.running:
@@ -175,6 +239,8 @@ class Simulation:
         self.world = world
         self.initial_world = None
         self.canvas = None
+        self.terrain_selection = False
+        self.terrain_array = None
 
     def start(self):
         """
@@ -511,7 +577,10 @@ class Simulation:
         for x in range(GRID_WIDTH):
             for y in range(GRID_HEIGHT):
                 self.color_cell(x, y, '')  # by default cell is transparent
-
+                if self.terrain_selection == True: #If terrain is customized, change color
+                    color = self.get_cell_color(x, y)
+                    self.color_cell(x, y, color)
+                    
         species = self.world.species
         for organism in self.world.organisms:
             x, y = organism.get_location()
@@ -565,6 +634,18 @@ class Simulation:
             old_loc = self.tracked_organism.get_location()
             self.canvas.itemconfigure(self.grid[old_loc[1]][old_loc[0]], outline='')
             self.tracked_organism = None
+
+    def get_cell_color(self, x, y):
+        terrain = self.terrain_array[y][x]
+
+        if terrain == "Terrain.WATER":
+            return WATER_COLOR
+        elif terrain == "Terrain.SAND":
+            return SAND_COLOR
+        elif terrain == "Terrain.ROCK":
+            return ROCK_COLOR
+        elif terrain == "Terrain.EARTH":
+            return EARTH_COLOR
 
 if __name__ == "__main__":
     root = tk.Tk()

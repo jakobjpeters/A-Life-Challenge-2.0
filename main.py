@@ -59,14 +59,7 @@ class Size(Enum):
     ONE = 1
     TWO = 2
     THREE = 3
-    FOUR = 4
-
-
-class Terrain(Enum):
-    SAND = auto()   
-    EARTH = auto()  
-    WATER = auto()  
-    ROCK  = auto()   
+    FOUR = 4 
 
 
 PREDATOR_PREY_TYPES = {EnergySource[predator]: [EnergySource[x] for x in prey] for predator, prey in (
