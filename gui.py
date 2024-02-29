@@ -5,7 +5,7 @@ import random
 import tkinter as tk
 import tkinter.filedialog
 import time
-from main import GRID_HEIGHT, GRID_WIDTH, World, EnergySource, Terrain
+from main import GRID_HEIGHT, GRID_WIDTH, World, EnergySource
 from enum import Enum, auto
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -171,9 +171,9 @@ class App:
         self.organism_info_area = tk.Label(self.main_frame, justify=tk.LEFT, anchor='w', font='TkFixedFont', text='Select Terrain Type')
         self.organism_info_area.place(anchor=tk.N, relx=0.9, rely=0.0, width=500, height=100)
 
-        customize_button = tk.Button(self.canvas, text="Select Parameters", command=self.start_simulation,
+        customize_button = tk.Button(self.canvas, text="Commence Simulation", command=self.start_simulation,
                                  width=30, height=2)
-        customize_button.place(relx=0.5, rely=0.8, anchor=tk.CENTER)
+        customize_button.place(relx=0.5, rely=0.8, anchor=tk.CENTER)                                    
 
         self.canvas.pack()
 
@@ -636,6 +636,9 @@ class Simulation:
             self.tracked_organism = None
 
     def get_cell_color(self, x, y):
+        """
+        Gets the color that cell should be, give its terrain type.
+        """
         terrain = self.terrain_array[y][x]
 
         if terrain == "Terrain.WATER":
