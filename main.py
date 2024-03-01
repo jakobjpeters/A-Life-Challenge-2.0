@@ -9,7 +9,7 @@ GRID_WIDTH = 50
 GRID_HEIGHT = 50
 STARTING_ENERGY_RATE = 10
 GENE_LENGTH = 50  # increasing GENE_LENGTH increases rate of phenotype change
-EAT_ENERGY_RATE = 10
+EAT_ENERGY_RATE = 2
 VISIBLE_RANGE = 5
 SIGMA = 1
 MUTATION_RATE = 50  # range from 0 to 100%
@@ -548,9 +548,12 @@ class World():
         x, y = _organism.x + dx, _organism.y + dy
         cell = self.grid[y][x]
 
-        if cell:
+        if cell and not cell.genome.phenotype[EnergySource] == EnergySource.PHOTOSYNTHESIS:
             self.collide(_organism, cell)
         else:
+            if cell:
+                cell.alive = False
+                self.remove_from_cell(cell)
             self.remove_from_cell(_organism)
             _organism.metabolize()
             _organism.update_location(x, y)
