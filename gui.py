@@ -53,6 +53,11 @@ class App:
         self.main_frame = tk.Frame(self.root, bg='#ffffff')
         self.button_frame = tk.Frame(self.main_frame)
 
+        # removes the graph and left pane from the main menu
+        for _pane in self.root.winfo_children():
+            if isinstance(_pane, tk.PanedWindow):
+                _pane.destroy()
+
         # canvas for buttons
         button_canvas = tk.Canvas(
             self.button_frame, width=250, height=200, bg='#00ff00', highlightthickness=0)
@@ -313,7 +318,6 @@ class Simulation:
     def create_graph_subpane(self, graph_data):
         """
         creates and updates the bottom graph showing the values of genotypes for each species
-        currently works by creating a new graph and clearing the old graph each time it is called
         """
         x_labels = ["Reproduction", "EnergySource", "Skin", "Movement", "Sleep", "Size"]
         species_index = 0
