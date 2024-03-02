@@ -350,9 +350,10 @@ class Simulation:
         self.canvas_original_x = self.canvas.xview()[0]
         self.canvas_original_y = self.canvas.yview()[0]
 
-        self.grid = []
+        self.grid, self.organism_grid = [], []
         for y in range(GRID_HEIGHT):
             self.grid.append([])
+            self.organism_grid.append([])
             for x in range(GRID_WIDTH):
                 _x, _y = CELL_SIZE * (x + 1), CELL_SIZE * (y + 1)
                 rect = self.canvas.create_rectangle(
@@ -364,6 +365,7 @@ class Simulation:
                     outline='',
                 )
                 self.grid[y].append(rect)
+                self.organism_grid[y].append(None)
                 self.attach_callbacks(x, y)
 
     def create_graph_subpane(self, graph_data):
@@ -572,11 +574,11 @@ class Simulation:
     def main_menu(self):
         self.running = False
 
-    def color_cell(self, x, y, color):
+    def color_cell(self, grid, x, y, color):
         """
         Changes the cell given by `x` and `y` to the given `color`.
         """
-        self.canvas.itemconfigure(self.grid[y][x], fill=color, outline='')
+        self.canvas.itemconfigure(grid[y][x], fill=color, outline='')
 
     def highlight_cell(self, x, y):
         """
@@ -594,7 +596,6 @@ class Simulation:
         Carnivore: rectangle
         Omnivore: hexagon
         """
-        cell = self.grid[y][x]
         _x, _y = CELL_SIZE * (x + 1), CELL_SIZE * (y + 1)
         match energy_source:
             case EnergySource.PHOTOSYNTHESIS:
@@ -614,13 +615,13 @@ class Simulation:
                     vertex_y = _y + CELL_SIZE * 0.577 * math.sin(angle_rad)
                     vertices.extend([vertex_x + (0.5*CELL_SIZE), vertex_y + (0.5)*CELL_SIZE])
                 cell = self.canvas.create_polygon(vertices)
-    
+
         x1, y1, x2, y2 = self.canvas.bbox(cell)
         center_x = (x1 + x2) / 2
         center_y = (y1 + y2) / 2
         scale_factor = 1.0 if energy_level > 30 else 0.7 + energy_level * 0.01
         self.canvas.scale(cell, center_x, center_y, scale_factor, scale_factor)
-        self.grid[y][x] = cell
+        self.organism_grid[y][x] = cell
         self.attach_callbacks(x, y)
 
     def render(self):
@@ -631,16 +632,17 @@ class Simulation:
         """
         for x in range(GRID_WIDTH):
             for y in range(GRID_HEIGHT):
-                self.color_cell(x, y, '')  # by default cell is transparent
-                if self.terrain_selection == True: #If terrain is customized, change color
-                    color = self.get_cell_color(x, y)
-                    self.color_cell(x, y, color)
-                    
+                color = self.get_cell_color(x, y)
+                self.color_cell(self.grid, x, y, color)
+                organism = self.organism_grid[y][x]
+                if organism:
+                    self.canvas.delete(organism)
+
         species = self.world.species
         for organism in self.world.organisms:
             x, y = organism.get_location()
             self.shape_cell(x, y, organism.genome.phenotype[EnergySource], organism.energy_level)
-            self.color_cell(x, y, "#%02x%02x%02x" % tuple([int(255 * color) for color in species.labels_colors[species.organisms_labels[organism]]]))
+            self.color_cell(self.organism_grid, x, y, "#%02x%02x%02x" % tuple([int(255 * color) for color in species.labels_colors[species.organisms_labels[organism]]]))
             if organism is self.tracked_organism:
                 self.highlight_cell(x, y)
 
