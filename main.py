@@ -434,7 +434,7 @@ class World():
 
         # randomly select a gene from each parent
         genotype_1 = organism_1.get_genotype_values()
-        genotype_2 = organism_1.get_genotype_values()
+        genotype_2 = organism_2.get_genotype_values()
         combined_genotype = list(zip(genotype_1, genotype_2))
         child_genotype = [choice(_) for _ in combined_genotype]
 
@@ -462,14 +462,14 @@ class World():
                 return
 
             for cell in cells:
-                if self.grid[cell[0]][cell[1]] is None:
+                if self.grid[cell[1]][cell[0]] is None:
                     child_genotype = org.get_genotype_values()
                     target_gene = choice(range(len(child_genotype)))
                     child_genotype[target_gene] = min(max(
                         (child_genotype[target_gene] + randint(-10, 10)) % MUTATION_RATE, 1), GENE_LENGTH)
                     new_genotype = {trait: value for trait,
                                     value in zip(TRAITS, child_genotype)}
-                    self.spawn_organism(cell[0], cell[1], 1, org.generation + 1, new_genotype)
+                    self.spawn_organism(cell[1], cell[0], 1, org.generation + 1, new_genotype)
                     org.metabolize()
 
         else:  # non-stationary photosynthesizer searches nearby cells for photosynthesizer, reproduces if found
@@ -481,9 +481,9 @@ class World():
             cells.remove((org.x, org.y))
 
             for cell in cells:
-                if self.grid[cell[0]][cell[1]]:
-                    if self.grid[cell[0]][cell[1]].genome.phenotype[EnergySource] == EnergySource.PHOTOSYNTHESIS:
-                        org_2 = self.grid[cell[0]][cell[1]]
+                if self.grid[cell[1]][cell[0]]:
+                    if self.grid[cell[1]][cell[0]].genome.phenotype[EnergySource] == EnergySource.PHOTOSYNTHESIS:
+                        org_2 = self.grid[cell[1]][cell[0]]
                         genotype_1 = org.get_genotype_values()
                         genotype_2 = org_2.get_genotype_values()
                         combined_genotype = list(zip(genotype_1, genotype_2))
@@ -523,7 +523,7 @@ class World():
 
         # offspring will populate empty cells
         for cell in cells:
-            if self.grid[cell[0]][cell[1]] is None:
+            if self.grid[cell[1]][cell[0]] is None:
                 child_genotype = org.get_genotype_values()
                 child_genotype[5] = new_sizes
                 target_gene = choice(range(len(child_genotype) - 1)) # asexual size wont mutate
