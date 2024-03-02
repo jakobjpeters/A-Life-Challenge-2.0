@@ -115,13 +115,9 @@ class App:
         self.organisms_slider.set(200)
         self.organisms_slider.place(relx=0.5, rely=0.7, anchor=tk.CENTER)
 
-        start_button = tk.Button(button_canvas, text="Start", command=self.start_simulation,
-                            width=30, height=2, bg="#5189f0", fg="#FFFFFF", activebackground="#5C89f0")
-        start_button.place(relx=0.5, rely=0.9, anchor=tk.CENTER)
-        
         customize_button = tk.Button(button_canvas, text="Customize Terrain", command=self.customize_terrain_command,
-                                 width=30, height=1)
-        customize_button.place(relx=0.5, rely=0.97, anchor=tk.CENTER)
+                            width=30, height=2, bg="#5189f0", fg="#FFFFFF", activebackground="#5C89f0")
+        customize_button.place(relx=0.5, rely=0.9, anchor=tk.CENTER)
 
     def load(self):
         """Load .world file and launch simulation."""
@@ -153,7 +149,7 @@ class App:
     def customize_terrain_command(self):
         """
         Enables user to choose terrain features.
-        """                    
+        """
         self.terrain_selected = True
         self.terrain_array = [["Terrain.EARTH" for _ in range(GRID_WIDTH)] for _ in range(GRID_HEIGHT)]
         self.draw_boolean = False
@@ -161,26 +157,26 @@ class App:
 
         # Select terrain types.
         self.canvas = tk.Canvas(self.main_frame, width=800, height=600)
-        self.selected_option = tk.StringVar(value = "Terrain.EARTH")                   
+        self.selected_option = tk.StringVar(value = "Terrain.EARTH")
 
         self.terrain_button = tk.Radiobutton(self.canvas, text='Earth', variable=self.selected_option , value = "Terrain.EARTH")
         self.terrain_button.place(relx=0.65, rely=0.2, anchor=tk.W)
 
-        self.terrain_button = tk.Radiobutton(self.canvas, text='Water', variable=self.selected_option , value = "Terrain.WATER")                
+        self.terrain_button = tk.Radiobutton(self.canvas, text='Water', variable=self.selected_option , value = "Terrain.WATER")
         self.terrain_button.place(relx=0.65, rely=0.3, anchor=tk.W)
 
-        self.terrain_button = tk.Radiobutton(self.canvas, text='Rock', variable=self.selected_option , value = "Terrain.ROCK")           
+        self.terrain_button = tk.Radiobutton(self.canvas, text='Rock', variable=self.selected_option , value = "Terrain.ROCK")
         self.terrain_button.place(relx=0.65, rely=0.4, anchor=tk.W)
 
-        self.terrain_button = tk.Radiobutton(self.canvas, text='Sand', variable=self.selected_option , value = "Terrain.SAND")                     
+        self.terrain_button = tk.Radiobutton(self.canvas, text='Sand', variable=self.selected_option , value = "Terrain.SAND")
         self.terrain_button.place(relx=0.65, rely=0.5, anchor=tk.W)
-        
+
         self.organism_info_area = tk.Label(self.main_frame, justify=tk.LEFT, anchor='w', font='TkFixedFont', text='Select Terrain Type')
         self.organism_info_area.place(anchor=tk.N, relx=0.9, rely=0.0, width=500, height=100)
 
-        customize_button = tk.Button(self.canvas, text="Commence Simulation", command=self.start_simulation,
-                                 width=30, height=2)
-        customize_button.place(relx=0.5, rely=0.8, anchor=tk.CENTER)                                    
+        commence_button = tk.Button(self.canvas, text="Commence Simulation", command=self.start_simulation,
+                    width=30, height=2, bg="#5189f0", fg="#FFFFFF", activebackground="#5C89f0")
+        commence_button.place(relx=0.5, rely=0.8, anchor=tk.CENTER)
 
         self.canvas.pack()
 
@@ -211,10 +207,10 @@ class App:
         terrain_color = TERRAIN_DICTIONARY[self.selected_option.get()]
 
         if self.dragged == True:
-            for i in range(self.x_cell_start, self.x_cell_end):                   
+            for i in range(self.x_cell_start, self.x_cell_end):
                 for j in range(self.y_cell_start, self.y_cell_end):
                     self.canvas.itemconfigure(self.terrain_grid[j][i], fill=terrain_color, outline='')
-                    self.terrain_array[j][i] = self.selected_option.get()                             
+                    self.terrain_array[j][i] = self.selected_option.get()
             self.dragged = False
         else:
             curX, curY = (event.x, event.y)
@@ -223,9 +219,8 @@ class App:
             self.terrain_array[y_coor][x_coor] = self.selected_option.get()
 
         self.canvas.delete(self.rect)
-                                         
 
-        
+
     def drag_terrain(self, event):
         curX, curY = (event.x, event.y)
         self.canvas.coords(self.rect, self.start_x, self.start_y, curX, curY)
@@ -249,7 +244,7 @@ class App:
 
         self.dragged = True
 
-    def click_terrain(self, event):                                          
+    def click_terrain(self, event):
         self.start_x = event.x
         self.start_y = event.y
         self.rect = self.canvas.create_rectangle(self.start_x, self.start_y, self.start_x, self.start_y, outline="black")
