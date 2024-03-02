@@ -156,6 +156,7 @@ class App:
         """                    
         self.terrain_selected = True
         self.terrain_array = [["Terrain.EARTH" for _ in range(GRID_WIDTH)] for _ in range(GRID_HEIGHT)]
+        self.draw_boolean = False
 
         # Select terrain types.
         self.canvas = tk.Canvas(self.main_frame, width=800, height=600)
@@ -172,7 +173,7 @@ class App:
 
         self.terrain_button = tk.Radiobutton(self.canvas, text='Sand', variable=self.selected_option , value = "Terrain.SAND")                     
         self.terrain_button.place(relx=0.65, rely=0.5, anchor=tk.W)
-
+        
         self.organism_info_area = tk.Label(self.main_frame, justify=tk.LEFT, anchor='w', font='TkFixedFont', text='Select Terrain Type')
         self.organism_info_area.place(anchor=tk.N, relx=0.9, rely=0.0, width=500, height=100)
 
@@ -187,16 +188,70 @@ class App:
             self.terrain_grid.append([]) 
             for x in range(GRID_WIDTH):
                 _x, _y = CELL_SIZE * (x + 1), CELL_SIZE * (y + 1)
-                rect = self.canvas.create_rectangle(
+                self.rect = self.canvas.create_rectangle(
                     _x, _y, _x + CELL_SIZE,
                     _y + CELL_SIZE,
                     fill=EARTH_COLOR,
                     outline='',
                 )
-                self.terrain_grid[y].append(rect)
-                self.canvas.tag_bind(rect, '<Button-1>', lambda _, x=x, y=y: self.terrain_selection(x, y, self.selected_option ,clicked=True))
+                self.terrain_grid[y].append(self.rect)
+                self.start_x = None
+                self.start_y = None
+                
+
+                self.canvas.tag_bind(self.rect, "<ButtonPress-1>", self.click_terrain)
+                self.canvas.tag_bind(self.rect, "<B1-Motion>", self.drag_terrain)
+                self.canvas.tag_bind(self.rect, "<ButtonRelease-1>", self.on_release)
+        self.dragged = False
 
         self.canvas.pack()
+
+    def on_release(self, event):
+        terrain_color = TERRAIN_DICTIONARY[self.selected_option.get()]
+
+        if self.dragged == True:
+            for i in range(self.x_cell_start, self.x_cell_end):                   
+                for j in range(self.y_cell_start, self.y_cell_end):
+                    self.canvas.itemconfigure(self.terrain_grid[j][i], fill=terrain_color, outline='')
+                    self.terrain_array[j][i] = self.selected_option.get()                             
+            self.dragged = False
+        else:
+            curX, curY = (event.x, event.y)
+            x_coor,  y_coor = int(curX/CELL_SIZE) - 1, int(curY/CELL_SIZE) - 1
+            self.canvas.itemconfigure(self.terrain_grid[y_coor][x_coor], fill=terrain_color, outline='')
+            self.terrain_array[y_coor][x_coor] = self.selected_option.get()
+
+        self.canvas.delete(self.rect)
+                                         
+
+        
+    def drag_terrain(self, event):
+        curX, curY = (event.x, event.y)
+        self.canvas.coords(self.rect, self.start_x, self.start_y, curX, curY)
+        x_start,  x_end = int(self.start_x/CELL_SIZE), int(curX/CELL_SIZE)
+        y_start, y_end = int(self.start_y/CELL_SIZE), int(curY/CELL_SIZE)
+
+
+        if x_start <= x_end:
+            self.x_cell_start = x_start
+            self.x_cell_end = x_end
+        else:
+            self.x_cell_start = x_end
+            self.x_cell_end = x_start
+        
+        if y_start <= y_end:
+            self.y_cell_start = y_start
+            self.y_cell_end = y_end
+        else:
+            self.y_cell_start = y_end
+            self.y_cell_end = y_start
+
+        self.dragged = True
+
+    def click_terrain(self, event):                                          
+        self.start_x = event.x
+        self.start_y = event.y
+        self.rect = self.canvas.create_rectangle(self.start_x, self.start_y, self.start_x, self.start_y, outline="black")
 
     def terrain_selection(self, x, y, selected_terrain, clicked=False):
         """
