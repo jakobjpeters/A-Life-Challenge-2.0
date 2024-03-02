@@ -529,6 +529,7 @@ class Simulation:
         """
         self.canvas.scale(tk.ALL, 0, 0, self.original_scale_factor, self.original_scale_factor)
         self.original_scale_factor = 1.0
+        self.scale_factor = 1.0
         self.canvas.xview_moveto(self.canvas_original_x)
         self.canvas.yview_moveto(self.canvas_original_y)
 
