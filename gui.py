@@ -158,9 +158,10 @@ class App:
         self.terrain_array = [["Terrain.EARTH" for _ in range(GRID_WIDTH)] for _ in range(GRID_HEIGHT)]
         self.draw_boolean = False
 
+
         # Select terrain types.
         self.canvas = tk.Canvas(self.main_frame, width=800, height=600)
-                           
+        self.selected_option = tk.StringVar(value = "Terrain.EARTH")                   
         self.selected_option = tk.StringVar()
         self.terrain_button = tk.Radiobutton(self.canvas, text='Earth', variable=self.selected_option , value = "Terrain.EARTH")
         self.terrain_button.place(relx=0.65, rely=0.2, anchor=tk.W)
