@@ -296,9 +296,8 @@ class Simulation:
         self.initial_world = None
         self.scale_factor = 1.0
         self.original_scale_factor = 1.0
-        self.canvas = None
-        self.terrain_selection = False
-        self.terrain_array = None
+        self.canvas = canvas
+        self.terrain_array = terrain_array
 
     def start(self):
         """
