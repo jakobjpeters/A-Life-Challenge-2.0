@@ -294,6 +294,8 @@ class Simulation:
         self.speed = 1.0
         self.world = world
         self.initial_world = None
+        self.scale_factor = 1.0
+        self.original_scale_factor = 1.0
         self.canvas = None
         self.terrain_selection = False
         self.terrain_array = None
@@ -519,6 +521,7 @@ class Simulation:
         """
         self.canvas.scale(tk.ALL, 0, 0, factor, factor)
         self.original_scale_factor *= 1.0 / factor
+        self.scale_factor = 1.0 / self.original_scale_factor
 
     def reset_view(self):
         """
@@ -615,7 +618,7 @@ class Simulation:
                     vertex_y = _y + CELL_SIZE * 0.577 * math.sin(angle_rad)
                     vertices.extend([vertex_x + (0.5*CELL_SIZE), vertex_y + (0.5)*CELL_SIZE])
                 cell = self.canvas.create_polygon(vertices)
-
+        self.canvas.scale(cell, 0, 0, self.scale_factor, self.scale_factor)
         x1, y1, x2, y2 = self.canvas.bbox(cell)
         center_x = (x1 + x2) / 2
         center_y = (y1 + y2) / 2
