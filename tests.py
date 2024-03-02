@@ -55,7 +55,7 @@ class TestWorld(unittest.TestCase):
 class TestMeet(unittest.TestCase):
     def setUp(self):
         self.organism_1 = Organism(0, 0, STARTING_ENERGY_RATE, GENERATION)
-        self.organism_2 = Organism(0, , STARTING_ENERGY_RATE, GENERATION)
+        self.organism_2 = Organism(0, 0, STARTING_ENERGY_RATE, GENERATION)
 
         # Different skin options to make different 'species' by default
         self.organism_1.genome.phenotype[Skin] = Skin.FUR
