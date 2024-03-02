@@ -17,6 +17,13 @@ HEIGHT = 600
 CELL_SIZE = 400 / GRID_WIDTH
 FPS_REFRESH_RATE = 1 # second
 
+EARTH_COLOR = '#556b2f' #dark olive green
+SAND_COLOR = '#e9d66b' #dark aleride yellow
+WATER_COLOR = '#00008b' # dark blue
+ROCK_COLOR = '#808080' #grey
+
+TERRAIN_DICTIONARY = {"Terrain.WATER":WATER_COLOR, "Terrain.ROCK":ROCK_COLOR, "Terrain.SAND":SAND_COLOR, "Terrain.EARTH":EARTH_COLOR}
+
 
 class App:
     """
@@ -27,6 +34,10 @@ class App:
     def __init__(self, root):
         self.root = root
         root.title("A-Life Challenge 2.0")
+
+        #terrain customization variables
+
+        self.terrain_array = None
 
         # window size
         screenwidth = root.winfo_screenwidth()
@@ -104,9 +115,9 @@ class App:
         self.organisms_slider.set(200)
         self.organisms_slider.place(relx=0.5, rely=0.7, anchor=tk.CENTER)
 
-        start_button = tk.Button(button_canvas, text="Start", command=self.start_simulation,
+        customize_button = tk.Button(button_canvas, text="Customize Terrain", command=self.customize_terrain_command,
                             width=30, height=2, bg="#5189f0", fg="#FFFFFF", activebackground="#5C89f0")
-        start_button.place(relx=0.5, rely=0.9, anchor=tk.CENTER)
+        customize_button.place(relx=0.5, rely=0.9, anchor=tk.CENTER)
 
     def load(self):
         """Load .world file and launch simulation."""
@@ -127,10 +138,123 @@ class App:
             self.root,
             n_organisms=n_organisms,
             n_species=n_species,
-            seed=seed
+            seed=seed,
+            canvas = self.canvas,
+            terrain_array = self.terrain_array
         )
+        
         self.simulation.start()
         self.run_after_delay()
+    
+    def customize_terrain_command(self):
+        """
+        Enables user to choose terrain features.
+        """                    
+
+        self.terrain_array = [["Terrain.EARTH" for _ in range(GRID_WIDTH)] for _ in range(GRID_HEIGHT)]
+
+
+        # Select terrain types.
+        self.canvas = tk.Canvas(self.main_frame, width=800, height=600)
+        self.selected_option = tk.StringVar(value = "Terrain.EARTH")
+
+        self.terrain_button = tk.Radiobutton(self.canvas, text='Earth', variable=self.selected_option , value = "Terrain.EARTH")
+        self.terrain_button.place(relx=0.65, rely=0.2, anchor=tk.W)
+
+        self.terrain_button = tk.Radiobutton(self.canvas, text='Water', variable=self.selected_option , value = "Terrain.WATER")
+        self.terrain_button.place(relx=0.65, rely=0.3, anchor=tk.W)
+
+        self.terrain_button = tk.Radiobutton(self.canvas, text='Rock', variable=self.selected_option , value = "Terrain.ROCK")
+        self.terrain_button.place(relx=0.65, rely=0.4, anchor=tk.W)
+
+        self.terrain_button = tk.Radiobutton(self.canvas, text='Sand', variable=self.selected_option , value = "Terrain.SAND")
+        self.terrain_button.place(relx=0.65, rely=0.5, anchor=tk.W)
+
+        self.organism_info_area = tk.Label(self.main_frame, justify=tk.LEFT, anchor='w', font='TkFixedFont', text='Select Terrain Type')
+        self.organism_info_area.place(anchor=tk.N, relx=0.9, rely=0.0, width=500, height=100)
+
+        commence_button = tk.Button(self.canvas, text="Commence Simulation", command=self.start_simulation,
+                    width=30, height=2, bg="#5189f0", fg="#FFFFFF", activebackground="#5C89f0")
+        commence_button.place(relx=0.5, rely=0.8, anchor=tk.CENTER)
+
+        self.canvas.pack()
+
+        self.terrain_grid = []
+        for y in range(GRID_HEIGHT):
+            self.terrain_grid.append([]) 
+            for x in range(GRID_WIDTH):
+                _x, _y = CELL_SIZE * (x + 1), CELL_SIZE * (y + 1)
+                self.rect = self.canvas.create_rectangle(
+                    _x, _y, _x + CELL_SIZE,
+                    _y + CELL_SIZE,
+                    fill=EARTH_COLOR,
+                    outline='',
+                )
+                self.terrain_grid[y].append(self.rect)
+                self.start_x = None
+                self.start_y = None
+                
+
+                self.canvas.tag_bind(self.rect, "<ButtonPress-1>", self.click_terrain)
+                self.canvas.tag_bind(self.rect, "<B1-Motion>", self.drag_terrain)
+                self.canvas.tag_bind(self.rect, "<ButtonRelease-1>", self.on_release)
+        self.dragged = False
+
+        self.canvas.pack()
+
+    def on_release(self, event):
+        terrain_color = TERRAIN_DICTIONARY[self.selected_option.get()]
+
+        if self.dragged == True:
+            for i in range(self.x_cell_start, self.x_cell_end):
+                for j in range(self.y_cell_start, self.y_cell_end):
+                    if j > 49:
+                        j = 49
+                    if j < 0:
+                        j = 0
+                    if i > 49:
+                        i = 49
+                    if i < 0:
+                        i = 0
+                    self.canvas.itemconfigure(self.terrain_grid[j][i], fill=terrain_color, outline='')
+                    self.terrain_array[j][i] = self.selected_option.get()
+            self.dragged = False
+        else:
+            curX, curY = (event.x, event.y)
+            x_coor,  y_coor = int(curX/CELL_SIZE) - 1, int(curY/CELL_SIZE) - 1
+            self.canvas.itemconfigure(self.terrain_grid[y_coor][x_coor], fill=terrain_color, outline='')
+            self.terrain_array[y_coor][x_coor] = self.selected_option.get()
+
+        self.canvas.delete(self.rect)
+
+
+    def drag_terrain(self, event):
+        curX, curY = (event.x, event.y)
+        self.canvas.coords(self.rect, self.start_x, self.start_y, curX, curY)
+        x_start,  x_end = int(self.start_x/CELL_SIZE), int(curX/CELL_SIZE)
+        y_start, y_end = int(self.start_y/CELL_SIZE), int(curY/CELL_SIZE)
+
+
+        if x_start <= x_end:
+            self.x_cell_start = x_start
+            self.x_cell_end = x_end
+        else:
+            self.x_cell_start = x_end
+            self.x_cell_end = x_start
+        
+        if y_start <= y_end:
+            self.y_cell_start = y_start
+            self.y_cell_end = y_end
+        else:
+            self.y_cell_start = y_end
+            self.y_cell_end = y_start
+
+        self.dragged = True
+
+    def click_terrain(self, event):
+        self.start_x = event.x
+        self.start_y = event.y
+        self.rect = self.canvas.create_rectangle(self.start_x, self.start_y, self.start_x, self.start_y, outline="black")
 
     def run_after_delay(self):
         if self.simulation.running:
@@ -155,7 +279,9 @@ class Simulation:
         world=None,
         n_organisms=None, 
         n_species=None,
-        seed=None
+        seed=None,
+        canvas=None,
+        terrain_array=None
     ):
         self.main_frame = main_frame
         self.root = root
@@ -168,7 +294,10 @@ class Simulation:
         self.speed = 1.0
         self.world = world
         self.initial_world = None
-        self.canvas = None
+        self.scale_factor = 1.0
+        self.original_scale_factor = 1.0
+        self.canvas = canvas
+        self.terrain_array = terrain_array
 
     def start(self):
         """
@@ -222,9 +351,10 @@ class Simulation:
         self.canvas_original_x = self.canvas.xview()[0]
         self.canvas_original_y = self.canvas.yview()[0]
 
-        self.grid = []
+        self.grid, self.organism_grid = [], []
         for y in range(GRID_HEIGHT):
             self.grid.append([])
+            self.organism_grid.append([])
             for x in range(GRID_WIDTH):
                 _x, _y = CELL_SIZE * (x + 1), CELL_SIZE * (y + 1)
                 rect = self.canvas.create_rectangle(
@@ -236,6 +366,7 @@ class Simulation:
                     outline='',
                 )
                 self.grid[y].append(rect)
+                self.organism_grid[y].append(None)
                 self.attach_callbacks(x, y)
 
     def create_graph_subpane(self, graph_data):
@@ -389,6 +520,7 @@ class Simulation:
         """
         self.canvas.scale(tk.ALL, 0, 0, factor, factor)
         self.original_scale_factor *= 1.0 / factor
+        self.scale_factor = 1.0 / self.original_scale_factor
 
     def reset_view(self):
         """
@@ -396,6 +528,7 @@ class Simulation:
         """
         self.canvas.scale(tk.ALL, 0, 0, self.original_scale_factor, self.original_scale_factor)
         self.original_scale_factor = 1.0
+        self.scale_factor = 1.0
         self.canvas.xview_moveto(self.canvas_original_x)
         self.canvas.yview_moveto(self.canvas_original_y)
 
@@ -444,11 +577,11 @@ class Simulation:
     def main_menu(self):
         self.running = False
 
-    def color_cell(self, x, y, color):
+    def color_cell(self, grid, x, y, color):
         """
         Changes the cell given by `x` and `y` to the given `color`.
         """
-        self.canvas.itemconfigure(self.grid[y][x], fill=color, outline='')
+        self.canvas.itemconfigure(grid[y][x], fill=color, outline='')
 
     def highlight_cell(self, x, y):
         """
@@ -466,7 +599,6 @@ class Simulation:
         Carnivore: rectangle
         Omnivore: hexagon
         """
-        cell = self.grid[y][x]
         _x, _y = CELL_SIZE * (x + 1), CELL_SIZE * (y + 1)
         match energy_source:
             case EnergySource.PHOTOSYNTHESIS:
@@ -486,13 +618,13 @@ class Simulation:
                     vertex_y = _y + CELL_SIZE * 0.577 * math.sin(angle_rad)
                     vertices.extend([vertex_x + (0.5*CELL_SIZE), vertex_y + (0.5)*CELL_SIZE])
                 cell = self.canvas.create_polygon(vertices)
-    
+        self.canvas.scale(cell, 0, 0, self.scale_factor, self.scale_factor)
         x1, y1, x2, y2 = self.canvas.bbox(cell)
         center_x = (x1 + x2) / 2
         center_y = (y1 + y2) / 2
         scale_factor = 1.0 if energy_level > 30 else 0.7 + energy_level * 0.01
         self.canvas.scale(cell, center_x, center_y, scale_factor, scale_factor)
-        self.grid[y][x] = cell
+        self.organism_grid[y][x] = cell
         self.attach_callbacks(x, y)
 
     def render(self):
@@ -503,13 +635,17 @@ class Simulation:
         """
         for x in range(GRID_WIDTH):
             for y in range(GRID_HEIGHT):
-                self.color_cell(x, y, '')  # by default cell is transparent
+                color = self.get_cell_color(x, y)
+                self.color_cell(self.grid, x, y, color)
+                organism = self.organism_grid[y][x]
+                if organism:
+                    self.canvas.delete(organism)
 
         species = self.world.species
         for organism in self.world.organisms:
             x, y = organism.get_location()
             self.shape_cell(x, y, organism.genome.phenotype[EnergySource], organism.energy_level)
-            self.color_cell(x, y, "#%02x%02x%02x" % tuple([int(255 * color) for color in species.labels_colors[species.organisms_labels[organism]]]))
+            self.color_cell(self.organism_grid, x, y, "#%02x%02x%02x" % tuple([int(255 * color) for color in species.labels_colors[species.organisms_labels[organism]]]))
             if organism is self.tracked_organism:
                 self.highlight_cell(x, y)
 
@@ -558,6 +694,21 @@ class Simulation:
             old_loc = self.tracked_organism.get_location()
             self.canvas.itemconfigure(self.grid[old_loc[1]][old_loc[0]], outline='')
             self.tracked_organism = None
+
+    def get_cell_color(self, x, y):
+        """
+        Gets the color that cell should be, give its terrain type.
+        """
+        terrain = self.terrain_array[y][x]
+
+        if terrain == "Terrain.WATER":
+            return WATER_COLOR
+        elif terrain == "Terrain.SAND":
+            return SAND_COLOR
+        elif terrain == "Terrain.ROCK":
+            return ROCK_COLOR
+        elif terrain == "Terrain.EARTH":
+            return EARTH_COLOR
 
 if __name__ == "__main__":
     root = tk.Tk()
