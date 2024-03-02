@@ -36,7 +36,7 @@ class App:
         root.title("A-Life Challenge 2.0")
 
         #terrain customization variables
-        self.terrain_selected = False
+
         self.terrain_array = None
 
         # window size
@@ -138,21 +138,20 @@ class App:
             self.root,
             n_organisms=n_organisms,
             n_species=n_species,
-            seed=seed
+            seed=seed,
+            canvas = self.canvas,
+            terrain_array = self.terrain_array
         )
-        if self.terrain_selected == True:
-            self.simulation.terrain_selection = True
-            self.simulation.terrain_array = self.terrain_array
+        
         self.simulation.start()
         self.run_after_delay()
     
     def customize_terrain_command(self):
         """
         Enables user to choose terrain features.
-        """
-        self.terrain_selected = True
+        """                    
+
         self.terrain_array = [["Terrain.EARTH" for _ in range(GRID_WIDTH)] for _ in range(GRID_HEIGHT)]
-        self.draw_boolean = False
 
 
         # Select terrain types.
@@ -209,6 +208,14 @@ class App:
         if self.dragged == True:
             for i in range(self.x_cell_start, self.x_cell_end):
                 for j in range(self.y_cell_start, self.y_cell_end):
+                    if j > 49:
+                        j = 49
+                    if j < 0:
+                        j = 0
+                    if i > 49:
+                        i = 49
+                    if i < 0:
+                        i = 0
                     self.canvas.itemconfigure(self.terrain_grid[j][i], fill=terrain_color, outline='')
                     self.terrain_array[j][i] = self.selected_option.get()
             self.dragged = False
@@ -249,15 +256,6 @@ class App:
         self.start_y = event.y
         self.rect = self.canvas.create_rectangle(self.start_x, self.start_y, self.start_x, self.start_y, outline="black")
 
-    def terrain_selection(self, x, y, selected_terrain, clicked=False):
-        """
-        Allows user to click on and select terrain.
-        """
-        if clicked:
-            terrain_color = TERRAIN_DICTIONARY[selected_terrain.get()]
-            self.canvas.itemconfigure(self.terrain_grid[y][x], fill=terrain_color, outline='')
-            self.terrain_array[y][x] = selected_terrain.get()
-
     def run_after_delay(self):
         if self.simulation.running:
             self.simulation.run()
@@ -281,7 +279,9 @@ class Simulation:
         world=None,
         n_organisms=None, 
         n_species=None,
-        seed=None
+        seed=None,
+        canvas=None,
+        terrain_array=None
     ):
         self.main_frame = main_frame
         self.root = root
