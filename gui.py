@@ -583,12 +583,12 @@ class Simulation:
         """
         self.canvas.itemconfigure(grid[y][x], fill=color, outline='')
 
-    def highlight_cell(self, x, y):
+    def highlight_organism(self, x, y):
         """
         Give cell a cell at `x` and `y` a yellow outline.
         """
-        self.canvas.itemconfigure(self.grid[y][x], outline='yellow', width=3)
-        self.canvas.tag_raise(self.grid[x][y])
+        self.canvas.itemconfigure(self.organism_grid[y][x], outline='yellow', width=3)
+        self.canvas.tag_raise(self.organism_grid[y][x])
 
     def shape_cell(self, x, y, energy_source, energy_level):
         """
@@ -647,14 +647,15 @@ class Simulation:
             self.shape_cell(x, y, organism.genome.phenotype[EnergySource], organism.energy_level)
             self.color_cell(self.organism_grid, x, y, "#%02x%02x%02x" % tuple([int(255 * color) for color in species.labels_colors[species.organisms_labels[organism]]]))
             if organism is self.tracked_organism:
-                self.highlight_cell(x, y)
+                self.highlight_organism(x, y)
 
     def attach_callbacks(self, x, y):
-        cell = self.grid[y][x]
-        # attach callback functions to cell when its clicked or hovered
-        self.canvas.tag_bind(cell, '<Enter>', lambda _, x=x, y=y: self.view_organism_details(x, y))
-        self.canvas.tag_bind(cell, '<Button-1>', lambda _, x=x, y=y: self.view_organism_details(x, y, clicked=True))
-        self.canvas.tag_bind(cell, '<Leave>', lambda _: self.clear_organism_details())
+        organism = self.organism_grid[y][x]
+        if organism is not None:
+            # attach callback functions to cell when its clicked or hovered
+            self.canvas.tag_bind(organism, '<Enter>', lambda _, x=x, y=y: self.view_organism_details(x, y))
+            self.canvas.tag_bind(organism, '<Button-1>', lambda _, x=x, y=y: self.view_organism_details(x, y, clicked=True))
+            self.canvas.tag_bind(organism, '<Leave>', lambda _: self.clear_organism_details())
 
     def view_organism_details(self, x, y, clicked=False):
         """
@@ -673,7 +674,7 @@ class Simulation:
                 if organism is self.tracked_organism:
                     self.clear_organism_details()
                     return
-                self.highlight_cell(x, y)
+                self.highlight_organism(x, y)
                 self.tracked_organism = organism
 
     def clear_organism_details(self):
@@ -692,7 +693,7 @@ class Simulation:
         """
         if self.tracked_organism:
             old_loc = self.tracked_organism.get_location()
-            self.canvas.itemconfigure(self.grid[old_loc[1]][old_loc[0]], outline='')
+            self.canvas.itemconfigure(self.organism_grid[old_loc[1]][old_loc[0]], outline='')
             self.tracked_organism = None
 
     def get_cell_color(self, x, y):
