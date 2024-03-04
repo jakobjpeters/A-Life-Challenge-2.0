@@ -255,8 +255,9 @@ class App:
 
     def run_after_delay(self):
         if self.simulation.running:
+            start = time.time()
             self.simulation.run()
-            self.root.after(int(1000 * self.simulation.speed), self.run_after_delay)
+            self.root.after(max(int(1000 * (self.simulation.speed + start - time.time())), 1), self.run_after_delay)
         else:
             self.simulation.window.pack_forget()
             self.main_menu()
