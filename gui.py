@@ -329,7 +329,7 @@ class Simulation:
         self.window.pack(fill=tk.BOTH, expand=1)
         subwindow = tk.PanedWindow(self.window, orient=tk.VERTICAL, bg='slategray')
         self.window.add(subwindow)
-        self.canvas = tk.Canvas(subwindow, width=400, height=400)
+        self.canvas = tk.Canvas(subwindow, width=450, height=450)
         self.set_up_canvas()
         subwindow.add(self.canvas)
 
