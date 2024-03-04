@@ -275,6 +275,7 @@ class Sun():
         """
         self.day_length = day_length  # currently implemented as days / frame
         self.time_to_twighlight = self.day_length
+        self.day_night_cycles = 0
 
     def update(self):
         """
@@ -284,6 +285,7 @@ class Sun():
         if self.time_to_twighlight == 0:
             self.is_day = not self.is_day
             self.time_to_twighlight = self.day_length
+        self.day_night_cycles += 1
 
 
 class World():

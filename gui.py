@@ -516,6 +516,12 @@ class Simulation:
             text='Hover over organism to view details'
         )
         self.organism_info_area.pack()
+        self.current_frame_label = tk.Label(
+            left_frame,
+            text='Frames: 0, Days: 0',
+            justify=tk.LEFT
+        )
+        self.current_frame_label.pack(side=tk.BOTTOM)
         return window
 
     def zoom_canvas(self, factor):
@@ -550,6 +556,9 @@ class Simulation:
             else:
                 self.canvas.configure(bg='black')
             self.create_graph_subpane(self.world.species.seeds)
+            days = self.world.sun.day_night_cycles // (2 * self.world.sun.day_length)
+            day_or_night = '𖤓' if self.world.sun.is_day else '☪'
+            self.current_frame_label.config(text=f'Frames: {self.world.frame}, Days: {days}, Light: {day_or_night}')
             self.render()
 
     def save(self):
@@ -585,7 +594,7 @@ class Simulation:
         """
         Changes the cell given by `x` and `y` to the given `color`.
         """
-        self.canvas.itemconfigure(grid[y][x], fill=color, outline='')
+        self.canvas.itemconfigure(grid[y][x], fill=color)
 
     def highlight_organism(self, x, y):
         """
@@ -650,6 +659,7 @@ class Simulation:
             x, y = organism.get_location()
             self.shape_cell(x, y, organism.genome.phenotype[EnergySource], organism.energy_level)
             self.color_cell(self.organism_grid, x, y, "#%02x%02x%02x" % tuple([int(255 * color) for color in species.labels_colors[species.organisms_labels[organism]]]))
+            self.canvas.itemconfigure(self.organism_grid[y][x], outline='black', width=0.01)
             if organism is self.tracked_organism:
                 self.highlight_organism(x, y)
 
