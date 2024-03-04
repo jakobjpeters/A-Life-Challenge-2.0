@@ -6,11 +6,8 @@ import tkinter as tk
 import tkinter.filedialog
 import time
 from main import GRID_HEIGHT, GRID_WIDTH, World, EnergySource
-from enum import Enum, auto
-from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
-import numpy as np
 
 WIDTH = 800
 HEIGHT = 600
