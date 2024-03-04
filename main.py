@@ -484,7 +484,9 @@ class World():
 
             for x, y in cells:
                 org_2 = self.grid[y][x]
-                if org_2 and org_2.genome.phenotype[EnergySource] == EnergySource.PHOTOSYNTHESIS:
+                photosynthesizer = org_2 and org_2.genome.phenotype[EnergySource] == EnergySource.PHOTOSYNTHESIS
+                same_species = org_2 and org.meet(org_2, self.species.organisms_labels) == Relationships.CONSPECIFIC
+                if photosynthesizer and same_species:
                     genotype_1 = org.get_genotype_values()
                     genotype_2 = org_2.get_genotype_values()
                     combined_genotype = list(zip(genotype_1, genotype_2))
