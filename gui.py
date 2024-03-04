@@ -332,7 +332,7 @@ class Simulation:
         subwindow.add(self.canvas)
 
         # bottom pane containing the graph
-        plt.rcParams.update({'font.size': 5})
+        plt.rcParams.update({'font.size': 10})
         self.paned_window = tk.PanedWindow(root, orient=tk.HORIZONTAL)
         self.paned_window.pack(fill=tk.BOTH, expand=True)
         self.subpane = tk.PanedWindow(self.paned_window, orient=tk.VERTICAL)
@@ -454,7 +454,7 @@ class Simulation:
 
         zoom_in_button = tk.Button(
             zoom_button_row,
-            text="Zoom in",
+            text="In",
             command=lambda: self.zoom_canvas(1.2),
             width=5,
             height=2
@@ -462,7 +462,7 @@ class Simulation:
         zoom_in_button.pack(side=tk.LEFT)
         zoom_out_button = tk.Button(
             zoom_button_row,
-            text="Zoom out",
+            text="Out",
             command=lambda: self.zoom_canvas(0.8),
             width=5,
             height=2
@@ -506,6 +506,12 @@ class Simulation:
         reset_button.pack(side=tk.LEFT)
         speed_button_row.pack()
 
+        self.current_frame_label = tk.Label(
+            left_frame,
+            justify=tk.LEFT
+        )
+        self.current_frame_label.pack(side=tk.BOTTOM)
+
         self.organism_info_area = tk.Label(
             left_frame,
             justify=tk.LEFT,
@@ -514,12 +520,6 @@ class Simulation:
             text='Hover over organism to view details'
         )
         self.organism_info_area.pack()
-        self.current_frame_label = tk.Label(
-            left_frame,
-            text='Frames: 0, Days: 0',
-            justify=tk.LEFT
-        )
-        self.current_frame_label.pack(side=tk.BOTTOM)
         return window
 
     def zoom_canvas(self, factor):
@@ -549,14 +549,9 @@ class Simulation:
             self.world.update()
             if self.tracked_organism:
                 self.organism_info_area.configure(text=str(self.tracked_organism))
-            if self.world.sun.is_day:
-                self.canvas.configure(bg='white')
-            else:
-                self.canvas.configure(bg='black')
             self.create_graph_subpane(self.world.species.seeds)
             days = self.world.sun.day_night_cycles // (2 * self.world.sun.day_length)
-            day_or_night = '𖤓' if self.world.sun.is_day else '☪'
-            self.current_frame_label.config(text=f'Frames: {self.world.frame}, Days: {days}, Light: {day_or_night}')
+            self.current_frame_label.config(text=f'Frames: {self.world.frame}, Days: {days}, Time: {'Day' if self.world.sun.is_day else 'Night'}')
             self.render()
 
     def save(self):
