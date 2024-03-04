@@ -646,7 +646,7 @@ class World():
         organisms = self.organisms.copy()
         self.organisms = []
         for _organism in organisms:
-            if _organism.alive:
+            if _organism.alive and any(_organism in ls for ls in self.grid):
                 _organism.can_reproduce = True
                 self.organisms.append(_organism)
 
