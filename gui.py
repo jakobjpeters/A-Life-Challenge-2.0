@@ -36,7 +36,6 @@ class App:
         root.title("A-Life Challenge 2.0")
 
         #terrain customization variables
-
         self.terrain_array = None
 
         # window size
@@ -46,6 +45,7 @@ class App:
                                     (screenwidth - WIDTH) / 2, (screenheight - HEIGHT) / 2)
         root.geometry(alignstr)
 
+        self.simulation = None
         self.main_menu()
 
     def main_menu(self):
@@ -125,9 +125,9 @@ class App:
         with open(file, 'rb') as f:
             # FIXME: handle invalid files
             world = pickle.load(f)
-        simulation = Simulation(self.main_frame, self.root, world=world)
-        simulation.start()
-        self.run_after_delay(simulation)
+        self.simulation = Simulation(self.main_frame, self.root, world=world)
+        self.simulation.start()
+        self.run_after_delay()
 
     def start_simulation(self):
         n_organisms = self.organisms_slider.get()
@@ -314,11 +314,13 @@ class Simulation:
             self.world = World(
                 n_organisms=self.n_organisms,
                 n_species=self.n_species,
-                seed=self.seed
+                seed=self.seed,
+                terrain=self.terrain_array
             )
             self.initial_world = copy.deepcopy(self.world)
         else:
-            # use seed from saved simulation
+            # use seed and terrain from saved simulation
+            self.terrain_array = self.world.terrain
             random.seed(self.world.seed)
 
         # Set up simulation windows
