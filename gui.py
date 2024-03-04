@@ -310,12 +310,12 @@ class Simulation:
         """
 
         if self.world is None:
+            random.seed(self.seed)
             self.world = World(
                 n_organisms=self.n_organisms,
                 n_species=self.n_species,
                 seed=self.seed
             )
-            random.seed(self.seed)
             self.initial_world = copy.deepcopy(self.world)
         else:
             # use seed from saved simulation
