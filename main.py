@@ -297,7 +297,7 @@ class World():
     sun = Sun()
     frame = 0
 
-    def __init__(self, n_organisms, n_species, seed=0):
+    def __init__(self, n_organisms, n_species, terrain=None, seed=0):
         """
         Instantiate a simulated environment and append each organism to its respective cell.
         """
@@ -305,6 +305,7 @@ class World():
         self.grid = [[None for __ in range(GRID_WIDTH)]
                      for _ in range(GRID_HEIGHT)]
         self.organisms = []
+        self.terrain = terrain
 
         species = [{trait: randint(1, GENE_LENGTH)
                     for trait in TRAITS} for _ in range(n_species)]
@@ -646,7 +647,7 @@ class World():
         organisms = self.organisms.copy()
         self.organisms = []
         for _organism in organisms:
-            if _organism.alive:
+            if _organism.alive and any(_organism in ls for ls in self.grid):
                 _organism.can_reproduce = True
                 self.organisms.append(_organism)
 
