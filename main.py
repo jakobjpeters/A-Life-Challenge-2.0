@@ -651,8 +651,6 @@ class World():
                 _organism.can_reproduce = True
                 self.organisms.append(_organism)
 
-        print(len(self.organisms))
-
         if self.organisms:
             self.species.cluster(self.organisms)
 
