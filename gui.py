@@ -329,11 +329,12 @@ class Simulation:
         self.window.pack(fill=tk.BOTH, expand=1)
         subwindow = tk.PanedWindow(self.window, orient=tk.VERTICAL, bg='slategray')
         self.window.add(subwindow)
-        self.canvas = tk.Canvas(subwindow, width=450, height=450)
+        self.canvas = tk.Canvas(subwindow, width=420, height=420)
         self.set_up_canvas()
         subwindow.add(self.canvas)
 
         # bottom pane containing the graph
+        plt.rcParams.update({'font.size': 5})
         self.paned_window = tk.PanedWindow(root, orient=tk.HORIZONTAL)
         self.paned_window.pack(fill=tk.BOTH, expand=True)
         self.subpane = tk.PanedWindow(self.paned_window, orient=tk.VERTICAL)
@@ -393,7 +394,7 @@ class Simulation:
 
             canvas = FigureCanvasTkAgg(plt.gcf(), master=self.subpane)
             canvas_widget = canvas.get_tk_widget()
-            canvas_widget.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+            canvas_widget.pack(side=tk.TOP)
 
         # redraw the lines after each frame
         for line in self.lines:
@@ -411,6 +412,7 @@ class Simulation:
             line.set_color(species_color)
             species_index += 1
 
+        plt.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.3)
         plt.gcf().canvas.draw()
 
     def set_up_left_panel(self):
