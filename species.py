@@ -34,8 +34,15 @@ class Species():
         Otherwise, the previous colors will be reused. If there are more clusters than previously,
         new colors will be associated with those clusters.
         """
-        mean_shift = MeanShift(seeds = self.seeds, bandwidth = BANDWIDTH).fit(array(
-            [[organism.genome.genotype[key] for key in organism.genome.genotype] for organism in organisms]))
+        bandwidth = BANDWIDTH
+        while True:
+            try:
+                mean_shift = MeanShift(seeds = self.seeds, bandwidth = bandwidth).fit(array(
+                    [[organism.genome.genotype[key] for key in organism.genome.genotype] for organism in organisms]))
+                break
+            except:
+                bandwidth += 5
+
         self.labels, seeds = mean_shift.labels_, mean_shift.cluster_centers_
         self.organisms_labels = {organism: label for organism, label in zip(organisms, self.labels)}
 
