@@ -16,7 +16,6 @@ SIGMA = 1
 MUTATION_RATE = 50  # range from 0 to 100%
 PHOTOSYNTHESIS_RATE = 1.1
 REPRODDUCTION_ENERGY_THRESHOLD = 2
-#TERRAIN_ARRAY = Simulation.terrain_array
 
 
 class Relationships(Enum):
