@@ -324,8 +324,8 @@ class World():
 
         self.species = Species(self.organisms)
 
-    def spawn_organism(self, x, y, generation, starting_energy_rate, genotype):
-        _organism = Organism(x, y, generation, starting_energy_rate,
+    def spawn_organism(self, x, y, starting_energy_rate, generation, genotype):
+        _organism = Organism(x, y, starting_energy_rate, generation, 
                              self.sun.is_day, genotype)
         self.organisms.append(_organism)
         self.insert_to_cell(_organism)
@@ -450,7 +450,7 @@ class World():
                         value in zip(TRAITS, child_genotype)}
         
         generation = max(organism_1.generation, organism_2.generation) + 1
-        self.spawn_organism(x, y, 2, generation, new_genotype)
+        self.spawn_organism(x, y, STARTING_ENERGY_RATE, generation, new_genotype)
 
     def scatter_seeds(self, org):
         """
