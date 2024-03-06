@@ -62,13 +62,6 @@ class Size(Enum):
     TWO = 2
     THREE = 3
     FOUR = 4 
-'''
-class Terrain(Enum):
-    WATER = auto()
-    ERATH = auto()
-    ROCK  = auto()
-    SAND  = auto()
-'''
 
 PREDATOR_PREY_TYPES = {EnergySource[predator]: [EnergySource[x] for x in prey] for predator, prey in (
     ("HERBIVORE", ["PHOTOSYNTHESIS"]),
@@ -256,13 +249,6 @@ class Organism():
         if movment_method == Movement.BIPEDAL:
             return "Terrain.WATER"
         return "Terrain.SAND"
-
-    '''
-    class Movement(Enum):
-        STATIONARY = auto()
-        BIPEDAL = auto()
-        QUADRIPEDAL = auto()  # 2 chances at reproduction
-    ''' 
 
     def __repr__(self) -> str:
         """
