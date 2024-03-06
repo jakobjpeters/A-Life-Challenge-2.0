@@ -551,7 +551,9 @@ class Simulation:
                 self.organism_info_area.configure(text=str(self.tracked_organism))
             self.create_graph_subpane(self.world.species.seeds)
             days = self.world.sun.day_night_cycles // (2 * self.world.sun.day_length)
-            self.current_frame_label.config(text=f'Frames: {self.world.frame}, Days: {days}, Time: {'Day' if self.world.sun.is_day else 'Night'}')
+            generation = max(organism.generation for organism in self.world.organisms)
+            s = f'Frames: {self.world.frame}, Days: {days}, Time: {'Day' if self.world.sun.is_day else 'Night'}, Generation: {generation}'
+            self.current_frame_label.config(text=s)
             self.render()
 
     def save(self):
