@@ -4,6 +4,7 @@ from random import randint, choice, gauss, sample
 from math import ceil, copysign
 from enum import Enum, auto
 from species import Species
+#from gui import Simulation
 
 GRID_WIDTH = 50
 GRID_HEIGHT = 50
@@ -15,6 +16,7 @@ SIGMA = 1
 MUTATION_RATE = 50  # range from 0 to 100%
 PHOTOSYNTHESIS_RATE = 1.1
 REPRODDUCTION_ENERGY_THRESHOLD = 2
+#TERRAIN_ARRAY = Simulation.terrain_array
 
 
 class Relationships(Enum):
@@ -60,7 +62,13 @@ class Size(Enum):
     TWO = 2
     THREE = 3
     FOUR = 4 
-
+'''
+class Terrain(Enum):
+    WATER = auto()
+    ERATH = auto()
+    ROCK  = auto()
+    SAND  = auto()
+'''
 
 PREDATOR_PREY_TYPES = {EnergySource[predator]: [EnergySource[x] for x in prey] for predator, prey in (
     ("HERBIVORE", ["PHOTOSYNTHESIS"]),
@@ -154,7 +162,7 @@ class Organism():
         self.alive = True
         self.can_reproduce = False
         self.generation = generation
-
+  
     def update_location(self, x, y):
         """
         Move an organism to the given `x` and `y` coordinates.
@@ -239,6 +247,22 @@ class Organism():
         returns a list of values for the Organisms genotype
         """
         return [self.genome.genotype[trait] for trait in TRAITS]
+    
+    def get_terrain_restriction(self):
+        '''
+        Returns terrain that organism cannot cross
+        '''
+        movment_method = self.genome.phenotype[Movement]
+        if movment_method == Movement.BIPEDAL:
+            return "Terrain.WATER"
+        return "Terrain.SAND"
+
+    '''
+    class Movement(Enum):
+        STATIONARY = auto()
+        BIPEDAL = auto()
+        QUADRIPEDAL = auto()  # 2 chances at reproduction
+    ''' 
 
     def __repr__(self) -> str:
         """
@@ -297,7 +321,7 @@ class World():
     sun = Sun()
     frame = 0
 
-    def __init__(self, n_organisms, n_species, seed=0):
+    def __init__(self, n_organisms, n_species, terrain_array, seed=0):
         """
         Instantiate a simulated environment and append each organism to its respective cell.
         """
@@ -305,6 +329,7 @@ class World():
         self.grid = [[None for __ in range(GRID_WIDTH)]
                      for _ in range(GRID_HEIGHT)]
         self.organisms = []
+        self.terrain_array = terrain_array
 
         species = [{trait: randint(1, GENE_LENGTH)
                     for trait in TRAITS} for _ in range(n_species)]
@@ -315,7 +340,7 @@ class World():
                     (genotype[key] + round(gauss(sigma=SIGMA))) % GENE_LENGTH) + 1
             while True:
                 x, y = randint(0, GRID_WIDTH - 1), randint(0, GRID_HEIGHT - 1)
-                if not self.grid[y][x]:
+                if not self.grid[y][x]: 
                     self.spawn_organism(x, y, STARTING_ENERGY_RATE, 1, genotype)
                     break
 
@@ -399,10 +424,56 @@ class World():
         TODO: write tests
         """
         x, y = _organism.get_location()
-
+        terrain_restriction = _organism.get_terrain_restriction()
         for _x in range(max(x - n, 0), min(1 + x + n, GRID_WIDTH)):
             for _y in range(max(y - n + abs(x - _x), 0), min(y + n + 1 - abs(x - _x), GRID_HEIGHT)):
-                yield _x, _y
+                if self.terrain_path((x, y), (_x, _y), terrain_restriction, n):                
+                    yield _x, _y                                                                    
+    
+    def terrain_path(self, origin, destination, terrain_restriction, n = 5):
+        """
+        Determens if there is a path to a certain place given terrain restrictions.
+        """
+        if origin == destination:
+            return True
+        
+        current_neighbours = []
+        visited = [origin]
+        adjacents = self.adjacent_move(origin, visited, terrain_restriction)
+        #current_postion = origin
+
+        while n > 0 and adjacents != []:
+            for adjacent in adjacents:
+                if adjacent == destination:
+                    return True
+                adj = self.adjacent_move(adjacent, visited, terrain_restriction)
+                for position in adj:                                             
+                    visited.append(position)
+                    current_neighbours.append(position)
+            adjacents = current_neighbours                      
+            current_neighbours = []                                         
+            n -= 1                                                              
+        return False                                                        
+
+    def get_terrain(self, square):                     
+        return self.terrain_array[square[1]][square[0]]
+
+    def adjacent_move(self, position, visited, terrain_restriction):
+        """
+        Get adjacent legal moves.                                                                                                                        
+        """
+        x = position[0]
+        y = position[1] 
+
+        adjactent_places = []
+        for i in [-1, 1]:     
+            if y + i >= 0 and y + i < 50 and (x, y + i) not in visited and self.get_terrain((x, y + i)) not in terrain_restriction:      #     (adj_x, position[1]) not in pathed and (adj_x, position[1]) not in current_path:
+                adjactent_places.append((x, y + i))
+
+            if x + i >= 0 and x + i < 50 and (x + i, y) not in visited and self.get_terrain((x + i, y)) not in terrain_restriction: #(position[0], adj_y) not in pathed and (position[0], adj_y) not in current_path:
+                adjactent_places.append((x + i, y))    
+
+        return adjactent_places  
 
     def empty_cells(self, _organism, n):
         """
@@ -461,8 +532,8 @@ class World():
             if not (cells and org.can_reproduce):
                 return
 
-            for cell in cells:
-                if self.grid[cell[0]][cell[1]] is None:
+            for cell in cells:                                                                      
+                if self.grid[cell[0]][cell[1]] is None and self.get_terrain(cell) != "Terrain.ROCK":
                     child_genotype = org.get_genotype_values()
                     target_gene = choice(range(len(child_genotype)))
                     child_genotype[target_gene] = min(max(
@@ -479,7 +550,7 @@ class World():
                 return
             # location of current organisms appears in reachable_cells
             cells.remove((org.x, org.y))
-
+                                                                                                    
             for cell in cells:
                 if self.grid[cell[0]][cell[1]]:
                     if self.grid[cell[0]][cell[1]].genome.phenotype[EnergySource] == EnergySource.PHOTOSYNTHESIS:
@@ -544,7 +615,7 @@ class World():
         This new location must be within bounds of `self.grid`.
         The organism `metabolize`s by the number of cells moved.
         If its new cell is non-empty, handle collision.
-        """
+        """                                                                 
         x, y = _organism.x + dx, _organism.y + dy
         cell = self.grid[y][x]
 
@@ -554,7 +625,7 @@ class World():
             self.remove_from_cell(_organism)
             _organism.metabolize()
             _organism.update_location(x, y)
-            self.insert_to_cell(_organism)
+            self.insert_to_cell(_organism)                      
 
     def pathfind(self, _organism):
         """
@@ -626,7 +697,7 @@ class World():
             if _organism.alive:
                 if is_twighlight:
                     _organism.awake = not _organism.awake
-                if _organism.awake and _organism.genome.phenotype[Movement] is not Movement.STATIONARY:
+                if _organism.awake and _organism.genome.phenotype[Size] is not Movement.STATIONARY:
                     self.pathfind(_organism)
                 if self.sun.is_day:
                     _organism.photosynthesize()
@@ -667,7 +738,7 @@ class World():
                 else:
                     grid_str += f'[{str(id(cell))[-5:]}]'
             grid_str += '\n'
-        print("Number of organisms", len(self.organisms))
+        print("Number of organisms", len(self.organisms))   
         return grid_str
 
 

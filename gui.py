@@ -37,7 +37,7 @@ class App:
 
         #terrain customization variables
 
-        self.terrain_array = None
+        #self.terrain_array = None
 
         # window size
         screenwidth = root.winfo_screenwidth()
@@ -313,6 +313,7 @@ class Simulation:
             self.world = World(
                 n_organisms=self.n_organisms,
                 n_species=self.n_species,
+                terrain_array = self.terrain_array,
                 seed=self.seed
             )
             random.seed(self.seed)
