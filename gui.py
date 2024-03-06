@@ -21,6 +21,12 @@ ROCK_COLOR = '#808080' #grey
 
 TERRAIN_DICTIONARY = {"Terrain.WATER":WATER_COLOR, "Terrain.ROCK":ROCK_COLOR, "Terrain.SAND":SAND_COLOR, "Terrain.EARTH":EARTH_COLOR}
 
+ABOUT = """This is an artificial life simulation. It was created for the course CS 467 (Online Capstone Project) at Oregon State University in Winter 2024 by Samuel Baird, William Cleveland, Jakob Peters, and Nathan Arkin.
+
+When starting a new simulation, you get the option to customize some of the starting parameters of the simulation. If you enjoy a particular simulation, you can Save it. From the Main Menu, you can Load previously saved simulations.
+
+While the simulation is running, you can interact with the simulation by hovering over an organism to view its current state. Each color represents a unique species, each shape represents an organism's energy source, and the size of each organism represents its current energy level."""
+
 
 class App:
     """
@@ -74,7 +80,7 @@ class App:
         about_button.place(relx=0.5, rely=0.8, anchor=tk.CENTER)
 
         # label box
-        self.label = tk.Label(self.main_frame, text="This is a little blurb about the simulation")
+        self.label = tk.Label(self.main_frame, font=('Times', 20), text="A Life Challenge 2.0")
         self.label.place(anchor=tk.CENTER, relx=0.5, rely=0.1)
 
         self.main_frame.pack(fill=tk.BOTH, expand=True)
@@ -262,8 +268,30 @@ class App:
             self.simulation.window.pack_forget()
             self.main_menu()
 
+    def reset(self):
+        self.main_frame.pack_forget()
+        self.main_menu()
+
     def about_button_command(self):
-        print("About button command")
+        self.button_frame.pack_forget()
+
+        about_canvas = tk.Canvas(
+            self.main_frame, width=250, height=200, highlightthickness=0)
+
+        about_text = tk.Text(about_canvas, font=('Times', 14), height=16, wrap=tk.WORD)
+        about_text.insert(tk.END, ABOUT)
+        about_text.pack()
+
+        menu_button = tk.Button(
+            about_canvas,
+            text='Main Menu',
+            command=self.reset,
+            width=30,
+            height=2
+        )
+        menu_button.pack()
+
+        about_canvas.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
 
 class Simulation:
@@ -551,7 +579,9 @@ class Simulation:
                 self.organism_info_area.configure(text=str(self.tracked_organism))
             self.create_graph_subpane(self.world.species.seeds)
             days = self.world.sun.day_night_cycles // (2 * self.world.sun.day_length)
-            self.current_frame_label.config(text=f'Frames: {self.world.frame}, Days: {days}, Time: {'Day' if self.world.sun.is_day else 'Night'}')
+            generation = max(organism.generation for organism in self.world.organisms)
+            s = f'Frames: {self.world.frame}, Days: {days}, Time: {'Day' if self.world.sun.is_day else 'Night'}, Generation: {generation}'
+            self.current_frame_label.config(text=s)
             self.render()
 
     def save(self):
