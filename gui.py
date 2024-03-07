@@ -6,11 +6,8 @@ import tkinter as tk
 import tkinter.filedialog
 import time
 from main import GRID_HEIGHT, GRID_WIDTH, World, EnergySource
-from enum import Enum, auto
-from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
-import numpy as np
 
 WIDTH = 800
 HEIGHT = 600
@@ -24,6 +21,12 @@ ROCK_COLOR = '#808080' #grey
 
 TERRAIN_DICTIONARY = {"Terrain.WATER":WATER_COLOR, "Terrain.ROCK":ROCK_COLOR, "Terrain.SAND":SAND_COLOR, "Terrain.EARTH":EARTH_COLOR}
 
+ABOUT = """This is an artificial life simulation. It was created for the course CS 467 (Online Capstone Project) at Oregon State University in Winter 2024 by Samuel Baird, William Cleveland, Jakob Peters, and Nathan Arkin.
+
+When starting a new simulation, you get the option to customize some of the starting parameters of the simulation. If you enjoy a particular simulation, you can Save it. From the Main Menu, you can Load previously saved simulations.
+
+While the simulation is running, you can interact with the simulation by hovering over an organism to view its current state. Each color represents a unique species, each shape represents an organism's energy source, and the size of each organism represents its current energy level."""
+
 
 class App:
     """
@@ -36,8 +39,7 @@ class App:
         root.title("A-Life Challenge 2.0")
 
         #terrain customization variables
-
-        #self.terrain_array = None
+        self.terrain_array = None
 
         # window size
         screenwidth = root.winfo_screenwidth()
@@ -46,6 +48,7 @@ class App:
                                     (screenwidth - WIDTH) / 2, (screenheight - HEIGHT) / 2)
         root.geometry(alignstr)
 
+        self.simulation = None
         self.main_menu()
 
     def main_menu(self):
@@ -77,7 +80,7 @@ class App:
         about_button.place(relx=0.5, rely=0.8, anchor=tk.CENTER)
 
         # label box
-        self.label = tk.Label(self.main_frame, text="This is a little blurb about the simulation")
+        self.label = tk.Label(self.main_frame, font=('Times', 20), text="A Life Challenge 2.0")
         self.label.place(anchor=tk.CENTER, relx=0.5, rely=0.1)
 
         self.main_frame.pack(fill=tk.BOTH, expand=True)
@@ -125,9 +128,9 @@ class App:
         with open(file, 'rb') as f:
             # FIXME: handle invalid files
             world = pickle.load(f)
-        simulation = Simulation(self.main_frame, self.root, world=world)
-        simulation.start()
-        self.run_after_delay(simulation)
+        self.simulation = Simulation(self.main_frame, self.root, world=world)
+        self.simulation.start()
+        self.run_after_delay()
 
     def start_simulation(self):
         n_organisms = self.organisms_slider.get()
@@ -258,14 +261,37 @@ class App:
 
     def run_after_delay(self):
         if self.simulation.running:
+            start = time.time()
             self.simulation.run()
-            self.root.after(int(1000 * self.simulation.speed), self.run_after_delay)
+            self.root.after(max(int(1000 * (self.simulation.speed + start - time.time())), 1), self.run_after_delay)
         else:
             self.simulation.window.pack_forget()
             self.main_menu()
 
+    def reset(self):
+        self.main_frame.pack_forget()
+        self.main_menu()
+
     def about_button_command(self):
-        print("About button command")
+        self.button_frame.pack_forget()
+
+        about_canvas = tk.Canvas(
+            self.main_frame, width=250, height=200, highlightthickness=0)
+
+        about_text = tk.Text(about_canvas, font=('Times', 14), height=16, wrap=tk.WORD)
+        about_text.insert(tk.END, ABOUT)
+        about_text.pack()
+
+        menu_button = tk.Button(
+            about_canvas,
+            text='Main Menu',
+            command=self.reset,
+            width=30,
+            height=2
+        )
+        menu_button.pack()
+
+        about_canvas.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
 
 class Simulation:
@@ -310,16 +336,17 @@ class Simulation:
         """
 
         if self.world is None:
+            random.seed(self.seed)
             self.world = World(
                 n_organisms=self.n_organisms,
                 n_species=self.n_species,
-                terrain_array = self.terrain_array,
-                seed=self.seed
+                seed=self.seed,
+                terrain=self.terrain_array
             )
-            random.seed(self.seed)
             self.initial_world = copy.deepcopy(self.world)
         else:
-            # use seed from saved simulation
+            # use seed and terrain from saved simulation
+            self.terrain_array = self.world.terrain
             random.seed(self.world.seed)
 
         # Set up simulation windows
@@ -328,11 +355,12 @@ class Simulation:
         self.window.pack(fill=tk.BOTH, expand=1)
         subwindow = tk.PanedWindow(self.window, orient=tk.VERTICAL, bg='slategray')
         self.window.add(subwindow)
-        self.canvas = tk.Canvas(subwindow, width=400, height=400)
+        self.canvas = tk.Canvas(subwindow, width=420, height=420)
         self.set_up_canvas()
         subwindow.add(self.canvas)
 
         # bottom pane containing the graph
+        plt.rcParams.update({'font.size': 10})
         self.paned_window = tk.PanedWindow(root, orient=tk.HORIZONTAL)
         self.paned_window.pack(fill=tk.BOTH, expand=True)
         self.subpane = tk.PanedWindow(self.paned_window, orient=tk.VERTICAL)
@@ -392,7 +420,7 @@ class Simulation:
 
             canvas = FigureCanvasTkAgg(plt.gcf(), master=self.subpane)
             canvas_widget = canvas.get_tk_widget()
-            canvas_widget.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+            canvas_widget.pack(side=tk.TOP)
 
         # redraw the lines after each frame
         for line in self.lines:
@@ -410,6 +438,7 @@ class Simulation:
             line.set_color(species_color)
             species_index += 1
 
+        plt.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.3)
         plt.gcf().canvas.draw()
 
     def set_up_left_panel(self):
@@ -453,7 +482,7 @@ class Simulation:
 
         zoom_in_button = tk.Button(
             zoom_button_row,
-            text="Zoom in",
+            text="In",
             command=lambda: self.zoom_canvas(1.2),
             width=5,
             height=2
@@ -461,7 +490,7 @@ class Simulation:
         zoom_in_button.pack(side=tk.LEFT)
         zoom_out_button = tk.Button(
             zoom_button_row,
-            text="Zoom out",
+            text="Out",
             command=lambda: self.zoom_canvas(0.8),
             width=5,
             height=2
@@ -505,6 +534,12 @@ class Simulation:
         reset_button.pack(side=tk.LEFT)
         speed_button_row.pack()
 
+        self.current_frame_label = tk.Label(
+            left_frame,
+            justify=tk.LEFT
+        )
+        self.current_frame_label.pack(side=tk.BOTTOM)
+
         self.organism_info_area = tk.Label(
             left_frame,
             justify=tk.LEFT,
@@ -542,11 +577,11 @@ class Simulation:
             self.world.update()
             if self.tracked_organism:
                 self.organism_info_area.configure(text=str(self.tracked_organism))
-            if self.world.sun.is_day:
-                self.canvas.configure(bg='white')
-            else:
-                self.canvas.configure(bg='black')
             self.create_graph_subpane(self.world.species.seeds)
+            days = self.world.sun.day_night_cycles // (2 * self.world.sun.day_length)
+            generation = max(organism.generation for organism in self.world.organisms)
+            s = f'Frames: {self.world.frame}, Days: {days}, Time: {'Day' if self.world.sun.is_day else 'Night'}, Generation: {generation}'
+            self.current_frame_label.config(text=s)
             self.render()
 
     def save(self):
@@ -582,14 +617,14 @@ class Simulation:
         """
         Changes the cell given by `x` and `y` to the given `color`.
         """
-        self.canvas.itemconfigure(grid[y][x], fill=color, outline='')
+        self.canvas.itemconfigure(grid[y][x], fill=color)
 
-    def highlight_cell(self, x, y):
+    def highlight_organism(self, x, y):
         """
         Give cell a cell at `x` and `y` a yellow outline.
         """
-        self.canvas.itemconfigure(self.grid[y][x], outline='yellow', width=3)
-        self.canvas.tag_raise(self.grid[x][y])
+        self.canvas.itemconfigure(self.organism_grid[y][x], outline='yellow', width=3)
+        self.canvas.tag_raise(self.organism_grid[y][x])
 
     def shape_cell(self, x, y, energy_source, energy_level):
         """
@@ -647,15 +682,17 @@ class Simulation:
             x, y = organism.get_location()
             self.shape_cell(x, y, organism.genome.phenotype[EnergySource], organism.energy_level)
             self.color_cell(self.organism_grid, x, y, "#%02x%02x%02x" % tuple([int(255 * color) for color in species.labels_colors[species.organisms_labels[organism]]]))
+            self.canvas.itemconfigure(self.organism_grid[y][x], outline='black', width=0.01)
             if organism is self.tracked_organism:
-                self.highlight_cell(x, y)
+                self.highlight_organism(x, y)
 
     def attach_callbacks(self, x, y):
-        cell = self.grid[y][x]
-        # attach callback functions to cell when its clicked or hovered
-        self.canvas.tag_bind(cell, '<Enter>', lambda _, x=x, y=y: self.view_organism_details(x, y))
-        self.canvas.tag_bind(cell, '<Button-1>', lambda _, x=x, y=y: self.view_organism_details(x, y, clicked=True))
-        self.canvas.tag_bind(cell, '<Leave>', lambda _: self.clear_organism_details())
+        organism = self.organism_grid[y][x]
+        if organism is not None:
+            # attach callback functions to cell when its clicked or hovered
+            self.canvas.tag_bind(organism, '<Enter>', lambda _, x=x, y=y: self.view_organism_details(x, y))
+            self.canvas.tag_bind(organism, '<Button-1>', lambda _, x=x, y=y: self.view_organism_details(x, y, clicked=True))
+            self.canvas.tag_bind(organism, '<Leave>', lambda _: self.clear_organism_details())
 
     def view_organism_details(self, x, y, clicked=False):
         """
@@ -674,7 +711,7 @@ class Simulation:
                 if organism is self.tracked_organism:
                     self.clear_organism_details()
                     return
-                self.highlight_cell(x, y)
+                self.highlight_organism(x, y)
                 self.tracked_organism = organism
 
     def clear_organism_details(self):
@@ -693,7 +730,7 @@ class Simulation:
         """
         if self.tracked_organism:
             old_loc = self.tracked_organism.get_location()
-            self.canvas.itemconfigure(self.grid[old_loc[1]][old_loc[0]], outline='')
+            self.canvas.itemconfigure(self.organism_grid[old_loc[1]][old_loc[0]], outline='')
             self.tracked_organism = None
 
     def get_cell_color(self, x, y):
