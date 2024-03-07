@@ -247,6 +247,8 @@ class Organism():
         movment_method = self.genome.phenotype[Movement]
         if movment_method == Movement.BIPEDAL:
             return "Terrain.WATER"
+        elif movment_method == Movement.STATIONARY:
+            return "Terrain.ROCK"
         return "Terrain.SAND"
 
     def __repr__(self) -> str:
@@ -421,6 +423,7 @@ class World():
         """
         Determens if there is a path to a certain place given terrain restrictions.
         """
+        
         if origin == destination:
             return True
         
@@ -439,11 +442,11 @@ class World():
                     current_neighbours.append(position)
             adjacents = current_neighbours                      
             current_neighbours = []                                         
-            n -= 1                                                              
+            n -= 1                                                     
         return False                                                        
 
-    def get_terrain(self, square):                     
-        return self.terrain[square[1]][square[0]]
+    def get_terrain(self, square):                      
+        return self.terrain[square[1]][square[0]]       
 
     def adjacent_move(self, position, visited, terrain_restriction):
         """
@@ -555,22 +558,13 @@ class World():
                     genotype_1 = org.get_genotype_values()
                     genotype_2 = org_2.get_genotype_values()
                     combined_genotype = list(zip(genotype_1, genotype_2))
-                    child_genotype = [choice(_) for _ in combined_genotype]
-                                                                                                    
-            for cell in cells:
-                if self.grid[cell[0]][cell[1]]:
-                    if self.grid[cell[0]][cell[1]].genome.phenotype[EnergySource] == EnergySource.PHOTOSYNTHESIS:
-                        org_2 = self.grid[cell[0]][cell[1]]
-                        genotype_1 = org.get_genotype_values()
-                        genotype_2 = org_2.get_genotype_values()
-                        combined_genotype = list(zip(genotype_1, genotype_2))
-                        child_genotype = [choice(_) for _ in combined_genotype]       
+                    child_genotype = [choice(_) for _ in combined_genotype]                                                                                         
                         
                     # chance for a mutation to occur
                     if randint(0, 100) < MUTATION_RATE:                                         
-                        target_gene = choice(range(len(child_genotype)))                       
-                        child_genotype[target_gene] = (                                         
-                            (child_genotype[target_gene] + randint(-10, 10)) % MUTATION_RATE) + 1
+                        target_gene = choice(range(len(child_genotype)))                           
+                        child_genotype[target_gene] = (                                            
+                            (child_genotype[target_gene] + randint(-10, 10)) % MUTATION_RATE) + 1   
                     new_genotype = {trait: value for trait,                                         
                                     value in zip(TRAITS, child_genotype)}                       
 
@@ -760,9 +754,9 @@ if __name__ == '__main__':
         # for organism in world.organisms:
         #    print(organism)
         world.update()
-        while True:
+        while True:                          
             ans = input('Next frame? [y/n] ')
-            if ans in ('Y', 'y', ''):
+            if ans in ('Y', 'y', ''):        
                 break
             if ans == 'n' or ans == 'N':
                 stop = True
