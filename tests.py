@@ -47,10 +47,11 @@ class TestWorld(unittest.TestCase):
         self.assertNotEqual(organism, self.world.cell_content(X, Y))
         self.world.insert_to_cell(organism)
 
-    def test_update(self):
+    def test_update(self): 
         frame = self.world.frame
+        self.world.terrain = [["Terrain.EARTH" for _ in range(GRID_WIDTH)] for _ in range(GRID_HEIGHT)]
         self.world.update()
-        self.assertEqual(self.world.frame, frame + 1)
+        self.assertEqual(self.world.frame, frame + 1)                           
 
 class TestMeet(unittest.TestCase):
     def setUp(self):
@@ -116,7 +117,6 @@ class TestMeet(unittest.TestCase):
         self.organism_2.genome.phenotype[Size] = Size.ONE
         relationship = self.organism_1.meet(self.organism_2, {self.organism_1: 1, self.organism_2: 1})
         self.assertEqual(relationship, Relationships.CONSPECIFIC)
-
 
 if __name__ == '__main__':
     unittest.main()
