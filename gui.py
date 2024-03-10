@@ -396,7 +396,8 @@ class Simulation:
                 )
                 self.grid[y].append(rect)
                 self.organism_grid[y].append(None)
-                self.attach_callbacks(x, y)
+                self.attach_callbacks(x, y, rect)
+                #self.attach_terrain_callbacks(x, y, rect)
 
     def create_graph_subpane(self, graph_data):
         """
@@ -686,13 +687,16 @@ class Simulation:
             if organism is self.tracked_organism:
                 self.highlight_organism(x, y)
 
-    def attach_callbacks(self, x, y):
+    def attach_callbacks(self, x, y, rect = None):
         organism = self.organism_grid[y][x]
         if organism is not None:
             # attach callback functions to cell when its clicked or hovered
             self.canvas.tag_bind(organism, '<Enter>', lambda _, x=x, y=y: self.view_organism_details(x, y))
             self.canvas.tag_bind(organism, '<Button-1>', lambda _, x=x, y=y: self.view_organism_details(x, y, clicked=True))
             self.canvas.tag_bind(organism, '<Leave>', lambda _: self.clear_organism_details())
+        else:
+            self.canvas.tag_bind(rect, '<Enter>', lambda _, x=x, y=y: self.view_terrain_details(x, y))
+            self.canvas.tag_bind(rect, '<Leave>', lambda _: self.clear_terrain_details())
 
     def view_organism_details(self, x, y, clicked=False):
         """
@@ -704,8 +708,11 @@ class Simulation:
         another organism)
         """
         organism = self.world.cell_content(x, y)
-        if organism:
-            self.organism_info_area.configure(text=str(organism))
+        terrain_type = self.terrain_array[y][x][8:]
+        if not organism:
+            self.organism_info_area.configure(text='Terrain Type: ' + terrain_type)
+        elif organism:
+            self.organism_info_area.configure(text=str(organism) + '\nTerrain Type: ' + terrain_type)
             if clicked:
                 self.clear_tracked_organism()
                 if organism is self.tracked_organism:
@@ -713,6 +720,21 @@ class Simulation:
                     return
                 self.highlight_organism(x, y)
                 self.tracked_organism = organism
+
+    def view_terrain_details(self, x, y):
+        """
+        Displays details of the terrain of that square.
+        """
+        terrain_type = self.terrain_array[y][x][8:]
+        self.organism_info_area.configure(text='\n\n\n\n\n\nTerrain Type: ' + terrain_type, compound='center')
+
+    def clear_terrain_details(self):
+        """
+        Clearing out details of the terrain of that square.
+        """
+        #terrain_type = self.terrain_array[y][x][8:]
+        self.organism_info_area.configure(text='')
+        #self.organism_info_area.configure(text='Terrain Type: ' + terrain_type)
 
     def clear_organism_details(self):
         """

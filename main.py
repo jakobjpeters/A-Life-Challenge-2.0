@@ -115,8 +115,10 @@ class Genome:
         """
         Determines and sets the `trait` `self.phenotype` according to the trait's value in `self.genotype`.
         """
+        #print(trait)
         self.phenotype[trait] = trait(
             ceil(len(trait) * self.genotype[trait] / GENE_LENGTH))
+        #print(self.phenotype[trait], type(trait))
 
     def set_genotype(self, trait):
         """
@@ -239,17 +241,6 @@ class Organism():
         returns a list of values for the Organisms genotype
         """
         return [self.genome.genotype[trait] for trait in TRAITS]
-    
-    def get_terrain_restriction(self):
-        '''
-        Returns terrain that organism cannot cross
-        '''
-        movment_method = self.genome.phenotype[Movement]
-        if movment_method == Movement.BIPEDAL:
-            return "Terrain.WATER"
-        elif movment_method == Movement.STATIONARY:
-            return "Terrain.ROCK"
-        return "Terrain.SAND"
 
     def __repr__(self) -> str:
         """
@@ -329,17 +320,21 @@ class World():
                     (genotype[key] + round(gauss(sigma=SIGMA))) % GENE_LENGTH) + 1
             while True:
                 x, y = randint(0, GRID_WIDTH - 1), randint(0, GRID_HEIGHT - 1)
-                if not self.grid[y][x]: 
+                restriction = Movement(ceil(len(Movement) * genotype[Movement] / GENE_LENGTH))
+                if not self.grid[y][x] and self.check_terrain_restriction(restriction, (x,y)): 
                     self.spawn_organism(x, y, STARTING_ENERGY_RATE, 1, genotype)
                     break
-
-        self.species = Species(self.organisms)
+        #check_terrain_restriction(self, _org = None, square = None)                            
+        self.species = Species(self.organisms)                                                       
 
     def spawn_organism(self, x, y, starting_energy_rate, generation, genotype):
-        _organism = Organism(x, y, starting_energy_rate, generation, 
-                             self.sun.is_day, genotype)
-        self.organisms.append(_organism)
-        self.insert_to_cell(_organism)
+
+        restriction = Movement(ceil(len(Movement) * genotype[Movement] / GENE_LENGTH))
+        if not self.grid[y][x] and self.check_terrain_restriction(restriction, (x,y)):
+            _organism = Organism(x, y, starting_energy_rate, generation, 
+                                self.sun.is_day, genotype)
+            self.organisms.append(_organism)
+            self.insert_to_cell(_organism)
 
     def insert_to_cell(self, _organism):
         """
@@ -412,38 +407,34 @@ class World():
 
         TODO: write tests
         """
-        x, y = _organism.get_location()
-        terrain_restriction = _organism.get_terrain_restriction()
-        for _x in range(max(x - n, 0), min(1 + x + n, GRID_WIDTH)):
+        x, y = _organism.get_location()                                           
+        for _x in range(max(x - n, 0), min(1 + x + n, GRID_WIDTH)):                                 
             for _y in range(max(y - n + abs(x - _x), 0), min(y + n + 1 - abs(x - _x), GRID_HEIGHT)):
-                if self.terrain_path((x, y), (_x, _y), terrain_restriction, n):                
-                    yield _x, _y                                                                    
-    
-    def terrain_path(self, origin, destination, terrain_restriction, n = 5):
-        """
-        Determens if there is a path to a certain place given terrain restrictions.
-        """
-        
-        if origin == destination:
-            return True
-        
-        current_neighbours = []
-        visited = [origin]
-        adjacents = self.adjacent_move(origin, visited, terrain_restriction)
+                if self.check_terrain_restriction(_organism, (x, y)):                            
+                    yield _x, _y                                                                           
 
+    def check_terrain_restriction(self, _org, square):
+        """
+        Discover if squares cannot be moved towards.
+        """
+        if self.get_terrain(square) == self.get_terrain_restriction(_org):
+            return False
+        return True
 
-        while n > 0 and adjacents != []:
-            for adjacent in adjacents:
-                if adjacent == destination:
-                    return True
-                adj = self.adjacent_move(adjacent, visited, terrain_restriction)
-                for position in adj:                                             
-                    visited.append(position)
-                    current_neighbours.append(position)
-            adjacents = current_neighbours                      
-            current_neighbours = []                                         
-            n -= 1                                                     
-        return False                                                        
+    def get_terrain_restriction(self, _org):
+        """
+        Returns terrain that organism cannot cross
+        """
+        if type(_org) == Enum:
+            movment_method = _org.genome.phenotype[Movement]
+        else:
+             movment_method = _org
+        
+        if movment_method == Movement.BIPEDAL:
+            return "Terrain.WATER"
+        elif movment_method == Movement.STATIONARY:
+            return "Terrain.ROCK"
+        return "Terrain.SAND"
 
     def get_terrain(self, square):                      
         return self.terrain[square[1]][square[0]]       
@@ -455,10 +446,10 @@ class World():
         x = position[0]
         y = position[1] 
 
-        adjactent_places = []
-        for i in [-1, 1]:     
-            if y + i >= 0 and y + i < 50 and (x, y + i) not in visited and self.get_terrain((x, y + i)) not in terrain_restriction:      #     (adj_x, position[1]) not in pathed and (adj_x, position[1]) not in current_path:
-                adjactent_places.append((x, y + i))
+        adjactent_places = []   
+        for i in [-1, 1]:                                           
+            if y + i >= 0 and y + i < 50 and (x, y + i) not in visited and self.get_terrain((x, y + i)) is not terrain_restriction:      #     (adj_x, position[1]) not in pathed and (adj_x, position[1]) not in current_path:
+                adjactent_places.append((x, y + i))                                                                 
 
             if x + i >= 0 and x + i < 50 and (x + i, y) not in visited and self.get_terrain((x + i, y)) not in terrain_restriction: #(position[0], adj_y) not in pathed and (position[0], adj_y) not in current_path:
                 adjactent_places.append((x + i, y))    
@@ -679,6 +670,10 @@ class World():
 
         self.move_organism(_organism, dx, dy)
 
+
+        
+        
+
     def update(self):
         """
         This method processes and executes one from of the simulation.
@@ -699,7 +694,7 @@ class World():
             if _organism.alive:
                 if is_twighlight:
                     _organism.awake = not _organism.awake
-                if _organism.awake and _organism.genome.phenotype[Size] is not Movement.STATIONARY:
+                if _organism.awake and _organism.genome.phenotype[Movement] is not Movement.STATIONARY:
                     self.pathfind(_organism)
                 if self.sun.is_day:
                     _organism.photosynthesize()

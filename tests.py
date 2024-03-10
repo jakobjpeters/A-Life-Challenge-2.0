@@ -1,4 +1,5 @@
-
+#from hypothesis import given
+#from hypothesis.strategies import  text
 import unittest
 from main import *
 
@@ -26,7 +27,7 @@ class TestOrganism(unittest.TestCase):
         self.assertEqual(self.organism.y, y)
 
 class TestWorld(unittest.TestCase):
-    world = World(N_ORGANISMS, N_SPECIES)
+    world = World(N_ORGANISMS, N_SPECIES, terrain = [["Terrain.EARTH" for _ in range(GRID_WIDTH)] for _ in range(GRID_HEIGHT)])
 
     def test_init(self):
         self.assertEqual(self.world.frame, 0)
