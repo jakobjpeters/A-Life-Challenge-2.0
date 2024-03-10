@@ -397,7 +397,6 @@ class Simulation:
                 self.grid[y].append(rect)
                 self.organism_grid[y].append(None)
                 self.attach_callbacks(x, y, rect)
-                #self.attach_terrain_callbacks(x, y, rect)
 
     def create_graph_subpane(self, graph_data):
         """
