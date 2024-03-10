@@ -323,8 +323,7 @@ class World():
                 restriction = Movement(ceil(len(Movement) * genotype[Movement] / GENE_LENGTH))
                 if not self.grid[y][x] and self.check_terrain_restriction(restriction, (x,y)): 
                     self.spawn_organism(x, y, STARTING_ENERGY_RATE, 1, genotype)
-                    break
-        #check_terrain_restriction(self, _org = None, square = None)                            
+                    break                           
         self.species = Species(self.organisms)                                                       
 
     def spawn_organism(self, x, y, starting_energy_rate, generation, genotype):
