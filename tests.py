@@ -8,10 +8,10 @@ N_SPECIES = 10
 GENERATION = 1
 
 class TestOrganism(unittest.TestCase):
-    organism = Organism(X, Y, STARTING_ENERGY_RATE, GENERATION)
+    organism = Organism(X, Y, STARTING_ENERGY_RATE, GENERATION, 1)
 
     def test_init(self):
-        organism = Organism(X, Y, STARTING_ENERGY_RATE, GENERATION)
+        organism = Organism(X, Y, STARTING_ENERGY_RATE, GENERATION, 1)
         self.assertEqual(organism.x, X)
         self.assertEqual(organism.y, Y)
 
@@ -36,7 +36,7 @@ class TestWorld(unittest.TestCase):
             self.assertTrue(len(row) == GRID_WIDTH)
 
     def test_insert_to_cell(self):
-        organism = Organism(X, Y, STARTING_ENERGY_RATE, GENERATION)
+        organism = Organism(X, Y, STARTING_ENERGY_RATE, GENERATION, 1)
         self.assertNotEqual(organism, self.world.cell_content(X, Y))
         self.world.insert_to_cell(organism)
         self.assertEqual(organism, self.world.cell_content(X, Y))
@@ -54,8 +54,8 @@ class TestWorld(unittest.TestCase):
 
 class TestMeet(unittest.TestCase):
     def setUp(self):
-        self.organism_1 = Organism(0, 0, STARTING_ENERGY_RATE, GENERATION)
-        self.organism_2 = Organism(0, 0, STARTING_ENERGY_RATE, GENERATION)
+        self.organism_1 = Organism(0, 0, STARTING_ENERGY_RATE, GENERATION, 1)
+        self.organism_2 = Organism(0, 0, STARTING_ENERGY_RATE, GENERATION, 1)
 
         # Different skin options to make different 'species' by default
         self.organism_1.genome.phenotype[Skin] = Skin.FUR
