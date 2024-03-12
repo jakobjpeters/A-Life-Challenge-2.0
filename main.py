@@ -4,6 +4,7 @@ from random import randint, choice, gauss, sample
 from math import ceil, copysign
 from enum import Enum, auto
 from species import Species
+#from gui import Simulation
 
 GRID_WIDTH = 50
 GRID_HEIGHT = 50
@@ -61,7 +62,6 @@ class Size(Enum):
     THREE = 3
     FOUR = 4 
 
-
 PREDATOR_PREY_TYPES = {EnergySource[predator]: [EnergySource[x] for x in prey] for predator, prey in (
     ("HERBIVORE", ["PHOTOSYNTHESIS"]),
     ("CARNIVORE", ["OMNIVORE", "CARNIVORE", "HERBIVORE"]),
@@ -115,8 +115,10 @@ class Genome:
         """
         Determines and sets the `trait` `self.phenotype` according to the trait's value in `self.genotype`.
         """
+        #print(trait)
         self.phenotype[trait] = trait(
             ceil(len(trait) * self.genotype[trait] / GENE_LENGTH))
+        #print(self.phenotype[trait], type(trait))
 
     def set_genotype(self, trait):
         """
@@ -319,13 +321,20 @@ class World():
                     (genotype[key] + round(gauss(sigma=SIGMA))) % GENE_LENGTH) + 1
             while True:
                 x, y = randint(0, GRID_WIDTH - 1), randint(0, GRID_HEIGHT - 1)
-                if not self.grid[y][x]:
+                restriction = Movement(ceil(len(Movement) * genotype[Movement] / GENE_LENGTH))
+                if not self.grid[y][x] and self.check_terrain_restriction(restriction, (x,y)): 
                     self.spawn_organism(x, y, STARTING_ENERGY_RATE, 1, genotype)
-                    break
-
-        self.species = Species(self.organisms)
+                    break                           
+        self.species = Species(self.organisms)                                                       
 
     def spawn_organism(self, x, y, starting_energy_rate, generation, genotype):
+
+        restriction = Movement(ceil(len(Movement) * genotype[Movement] / GENE_LENGTH))
+        if not self.grid[y][x] and self.check_terrain_restriction(restriction, (x,y)):
+            _organism = Organism(x, y, starting_energy_rate, generation, 
+                                self.sun.is_day, genotype)
+            self.organisms.append(_organism)
+            self.insert_to_cell(_organism)
         _organism = Organism(x, y, starting_energy_rate, generation, self.frame,
                              self.sun.is_day, genotype)
         self.organisms.append(_organism)
@@ -402,11 +411,54 @@ class World():
 
         TODO: write tests
         """
-        x, y = _organism.get_location()
-
-        for _x in range(max(x - n, 0), min(1 + x + n, GRID_WIDTH)):
+        x, y = _organism.get_location()                                           
+        for _x in range(max(x - n, 0), min(1 + x + n, GRID_WIDTH)):                                 
             for _y in range(max(y - n + abs(x - _x), 0), min(y + n + 1 - abs(x - _x), GRID_HEIGHT)):
-                yield _x, _y
+                if self.check_terrain_restriction(_organism, (x, y)):                            
+                    yield _x, _y                                                                           
+
+    def check_terrain_restriction(self, _org, square):
+        """
+        Discover if squares cannot be moved towards.
+        """
+        if self.get_terrain(square) == self.get_terrain_restriction(_org):
+            return False
+        return True
+
+    def get_terrain_restriction(self, _org):
+        """
+        Returns terrain that organism cannot cross
+        """
+        if type(_org) == Enum:
+            movment_method = _org.genome.phenotype[Movement]
+        else:
+             movment_method = _org
+        
+        if movment_method == Movement.BIPEDAL:
+            return "Terrain.WATER"
+        elif movment_method == Movement.STATIONARY:
+            return "Terrain.ROCK"
+        return "Terrain.SAND"
+
+    def get_terrain(self, square):                      
+        return self.terrain[square[1]][square[0]]       
+
+    def adjacent_move(self, position, visited, terrain_restriction):
+        """
+        Get adjacent legal moves.                                                                                                                        
+        """
+        x = position[0]
+        y = position[1] 
+
+        adjactent_places = []   
+        for i in [-1, 1]:                                           
+            if y + i >= 0 and y + i < 50 and (x, y + i) not in visited and self.get_terrain((x, y + i)) is not terrain_restriction:      #     (adj_x, position[1]) not in pathed and (adj_x, position[1]) not in current_path:
+                adjactent_places.append((x, y + i))                                                                 
+
+            if x + i >= 0 and x + i < 50 and (x + i, y) not in visited and self.get_terrain((x + i, y)) not in terrain_restriction: #(position[0], adj_y) not in pathed and (position[0], adj_y) not in current_path:
+                adjactent_places.append((x + i, y))    
+
+        return adjactent_places  
 
     def empty_cells(self, _organism, n):
         """
@@ -474,6 +526,16 @@ class World():
                                 value in zip(TRAITS, child_genotype)}
                 self.spawn_organism(x, y, 1, org.generation + 1, new_genotype)
                 org.metabolize()
+            for cell in cells:                                                                      
+                if self.grid[cell[0]][cell[1]] is None:
+                    child_genotype = org.get_genotype_values()
+                    target_gene = choice(range(len(child_genotype)))
+                    child_genotype[target_gene] = min(max(
+                        (child_genotype[target_gene] + randint(-10, 10)) % MUTATION_RATE, 1), GENE_LENGTH)
+                    new_genotype = {trait: value for trait,              
+                                    value in zip(TRAITS, child_genotype)} 
+                    self.spawn_organism(cell[0], cell[1], 1, org.generation + 1, new_genotype)
+                    org.metabolize()
 
         else:  # non-stationary photosynthesizer searches nearby cells for photosynthesizer, reproduces if found
             cells = list(self.reachable_cells(org, 1))
@@ -491,15 +553,15 @@ class World():
                     genotype_1 = org.get_genotype_values()
                     genotype_2 = org_2.get_genotype_values()
                     combined_genotype = list(zip(genotype_1, genotype_2))
-                    child_genotype = [choice(_) for _ in combined_genotype]
-
+                    child_genotype = [choice(_) for _ in combined_genotype]                                                                                         
+                        
                     # chance for a mutation to occur
-                    if randint(0, 100) < MUTATION_RATE:
-                        target_gene = choice(range(len(child_genotype)))
-                        child_genotype[target_gene] = (
-                            (child_genotype[target_gene] + randint(-10, 10)) % MUTATION_RATE) + 1
-                    new_genotype = {trait: value for trait,
-                                    value in zip(TRAITS, child_genotype)}
+                    if randint(0, 100) < MUTATION_RATE:                                         
+                        target_gene = choice(range(len(child_genotype)))                           
+                        child_genotype[target_gene] = (                                            
+                            (child_genotype[target_gene] + randint(-10, 10)) % MUTATION_RATE) + 1   
+                    new_genotype = {trait: value for trait,                                         
+                                    value in zip(TRAITS, child_genotype)}                       
 
                     x, y = choice(empty_cells)
 
@@ -547,7 +609,7 @@ class World():
         This new location must be within bounds of `self.grid`.
         The organism `metabolize`s by the number of cells moved.
         If its new cell is non-empty, handle collision.
-        """
+        """                                                                 
         x, y = _organism.x + dx, _organism.y + dy
         cell = self.grid[y][x]
 
@@ -560,7 +622,7 @@ class World():
             self.remove_from_cell(_organism)
             _organism.metabolize()
             _organism.update_location(x, y)
-            self.insert_to_cell(_organism)
+            self.insert_to_cell(_organism)                      
 
     def pathfind(self, _organism):
         """
@@ -611,6 +673,10 @@ class World():
             dx, dy = 0, int(copysign(1, dy))
 
         self.move_organism(_organism, dx, dy)
+
+
+        
+        
 
     def update(self):
         """
@@ -685,7 +751,7 @@ class World():
                 else:
                     grid_str += f'[{str(id(cell))[-5:]}]'
             grid_str += '\n'
-        print("Number of organisms", len(self.organisms))
+        print("Number of organisms", len(self.organisms))   
         return grid_str
 
 
@@ -698,9 +764,9 @@ if __name__ == '__main__':
         # for organism in world.organisms:
         #    print(organism)
         world.update()
-        while True:
+        while True:                          
             ans = input('Next frame? [y/n] ')
-            if ans in ('Y', 'y', ''):
+            if ans in ('Y', 'y', ''):        
                 break
             if ans == 'n' or ans == 'N':
                 stop = True
