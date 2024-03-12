@@ -145,7 +145,7 @@ class Organism():
     An organism dies when its `energy_level` is less than or equal to `0`.
     """
 
-    def __init__(self, x, y, starting_energy_rate, generation, is_day=True, genotype={}):
+    def __init__(self, x, y, starting_energy_rate, generation, birthday, is_day=True, genotype={}):
         """
         Instantiate an organism at the given `x` and `y` coordinates.
         """
@@ -156,7 +156,8 @@ class Organism():
         self.alive = True
         self.can_reproduce = False
         self.generation = generation
-  
+        self.birth_frame = birthday
+
     def update_location(self, x, y):
         """
         Move an organism to the given `x` and `y` coordinates.
@@ -334,6 +335,10 @@ class World():
                                 self.sun.is_day, genotype)
             self.organisms.append(_organism)
             self.insert_to_cell(_organism)
+        _organism = Organism(x, y, starting_energy_rate, generation, self.frame,
+                             self.sun.is_day, genotype)
+        self.organisms.append(_organism)
+        self.insert_to_cell(_organism)
 
     def insert_to_cell(self, _organism):
         """
@@ -688,6 +693,11 @@ class World():
         self.frame += 1
         is_twighlight = self.sun.time_to_twighlight == 1
         self.sun.update()
+        death_dict = {
+            EnergySource.PHOTOSYNTHESIS: randint(30, 65),
+            Reproduction.ASEXUAL: randint(60, 85),
+            Reproduction.SEXUAL: randint(38, 70)
+        }
 
         for _organism in self.organisms:
             if _organism.alive:
@@ -701,7 +711,13 @@ class World():
                 if _organism.alive and _organism.energy_level <= 0:
                     _organism.alive = False
                     self.remove_from_cell(_organism)
-                if self.frame % 3 == 0:  # added non-sexual reproduction here since self.organisms is being iterated through
+                #organisms die based on age of frames from death_dict
+                for phenotype, age in death_dict.items():
+                    if _organism.genome.phenotype[phenotype.__class__] == phenotype:
+                        if self.frame - _organism.birth_frame > age:
+                            _organism.alive = False
+                            self.remove_from_cell(_organism)
+                if self.frame % 4 == 0:  # added non-sexual reproduction here since self.organisms is being iterated through
                     if _organism.genome.phenotype[Reproduction] == Reproduction.ASEXUAL:
                         self.asexual_reproduction(_organism)
                     elif _organism.genome.phenotype[EnergySource] == EnergySource.PHOTOSYNTHESIS:
